@@ -1,0 +1,10 @@
+
+*.out
+
+*.o
+
+*.output
+
+labgen\.tab\.c
+
+lex\.yy\.c
