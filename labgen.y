@@ -8,8 +8,9 @@
 
 
 /* définition des terminaux */
-%token tk_SIZE tk_IN tk_OUT tk_WALL tk_PTA tk_TOOGLE tk_R
 %token CNUM IDENT DIR
+%token tk_SIZE tk_IN tk_OUT tk_SHOW tk_WALL tk_PTA tk_PTD tk_TOGGLE tk_R tk_F tk_FOR
+%token tk_SHARP
 
 %left '+' '-'
 %left '*' '/'
@@ -21,25 +22,33 @@
 %%
 
 labyrinthe
-	: suite_instructions;
+	: suite_instruction;
 
-suite_instructions
-	: suite_instructions instruction ';'
+suite_instruction
+	: suite_instruction instruction ';'
 	| instruction ';'
 ;
 
 instruction
 	: ';'
 	| IDENT '=' xcst
-	| tk_SIZE IDENT
-	| tk_SIZE IDENT ',' expr
+	| tk_SIZE xcst
+	| tk_SIZE xcst ',' xcst
 	| tk_IN pt
-	| tk_OUT suite_pts
+	| tk_OUT suite_pt
+	| tk_SHOW
+	| IDENT op'=' xcst
+	| tk_WALL
+	| tk_WALL tk_PTA suite_pt
+	| tk_WALL tk_PTD suite_ptd
+	| tk_WALL tk_R pt pt
+	| tk_WALL tk_R tk_F pt pt
+	| tk_WALL tk_FOR suite_value tk_IN suite_range '(' expr ',' expr ')'
+	| tk_TOGGLE tk_R pt pt
 ;
 
 expr
-	: CNUM
-	| IDENT
+	: value
 	| expr '+' expr
 	| expr '-' expr
 	| expr '*' expr
@@ -51,8 +60,7 @@ expr
 ;
 
 xcst
-	: CNUM
-	| IDENT
+	: value
 	| xcst '+' xcst
 	| xcst '-' xcst
 	| xcst '*' xcst
@@ -63,13 +71,56 @@ xcst
 	| '(' xcst ')'
 ;
 
-suite_pts
-	: suite_pts pt
+pt
+	: '(' xcst ',' xcst ')'
+;
+
+suite_pt
+	: suite_pt pt
 	| pt
 ;
 
-pt
-	: '(' xcst ',' xcst ')'
+ptd
+	: pt
+	| pt ':' ri
+;
+
+suite_ptd
+	: suite_ptd ptd
+	| ptd
+;
+
+ri
+	: xcst
+	| '*'
+;
+
+op
+	: '+'
+	| '-'
+	| '*'
+	| '/'
+	| '%'
+;
+
+value
+	: CNUM
+	| IDENT
+;
+
+suite_value
+	: suite_value value
+	| value
+;
+
+range
+	: '[' xcst ',' xcst ']'
+	| '[' xcst ',' xcst ',' xcst ']'
+;
+
+suite_range
+	: suite_range range
+	| range
 ;
 
 %%

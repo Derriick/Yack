@@ -8,3 +8,7 @@
 labgen\.tab\.c
 
 lex\.yy\.c
+
+*.sublime-project
+
+*.sublime-workspace
