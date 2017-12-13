@@ -8,7 +8,7 @@
 
 
 /* définition des terminaux */
-%token CNUM IDENT DIR
+%token CNUM IDENT
 %token tk_SIZE tk_IN tk_OUT tk_SHOW tk_WALL tk_PTA tk_PTD tk_TOGGLE tk_R tk_F tk_FOR
 %token tk_SHARP
 
@@ -37,7 +37,7 @@ instruction
 	| tk_IN pt
 	| tk_OUT suite_pt
 	| tk_SHOW
-	| IDENT op'=' xcst
+	| IDENT op '=' xcst
 	| tk_WALL
 	| tk_WALL tk_PTA suite_pt
 	| tk_WALL tk_PTD suite_ptd
@@ -71,6 +71,16 @@ xcst
 	| '(' xcst ')'
 ;
 
+value
+	: CNUM
+	| IDENT
+;
+
+suite_value
+	: suite_value value
+	| value
+;
+
 pt
 	: '(' xcst ',' xcst ')'
 ;
@@ -101,16 +111,6 @@ op
 	| '*'
 	| '/'
 	| '%'
-;
-
-value
-	: CNUM
-	| IDENT
-;
-
-suite_value
-	: suite_value value
-	| value
 ;
 
 range
