@@ -41,11 +41,13 @@ cell_2_1
 	| SW cell_1_2
 ;
 
-cell_2_2:;
+cell_2_2:{return(1);};
 
 
 %%
+
 #include "labres2.yy.c"
+
 void yyerror(const char *mess)
 {
 	fprintf(stderr, "FATAL: %s (near %s)\n", mess, yytext);
@@ -55,9 +57,10 @@ void yyerror(const char *mess)
 int main(int argc, char *argv[])
 {
 	if(argc == 2){
-		FILE file = fopen(const char* argv[1], "r");
+		FILE* file = fopen(argv[1], "r");
 		if(file != NULL){
 			yyin = file;
+			fclose(file);
 		}
 		else{
 			yyerror("error in the file");
@@ -70,10 +73,10 @@ int main(int argc, char *argv[])
 	int succ = yyparse();
 
 	if(succ){
-		printf("\n Izi win !");
+		printf("\ngagné\n");
 	}
 	else{
-		printf("Too bad, looser !");
+		printf("\nperdu\n");
 	}
 	return(succ);
 }

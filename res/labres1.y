@@ -8,7 +8,9 @@
 
 %token N S E W NE NW SE SW
 
+%start cell_0_0
 
+%%
 
 cell_0_0
 	: E cell_1_0 
@@ -57,36 +59,37 @@ cell_2_2:;
 
 
 %%
+
 #include "labres1.yy.c"
 
 void yyerror(const char *mess)
 {
-	fprintf(stderr, "FATAL: %s (near %s)\n", mess, yytext);
-	exit(1);
+	printf("syntax error");
 }
 
 int main(int argc, char *argv[])
 {
 	if(argc == 2){
-		FILE file = fopen(const char* argv[1], "r");
+		FILE* file = fopen(argv[1], "r");
 		if(file != NULL){
 			yyin = file;
+			fclose(file);
 		}
 		else{
-			yyerror("error in the file");
+			//yyerror("huoh");
 		}
 	}
 	else if(argc != 1){
-		yyerror("error in the args");
+		//yyerror("zdad");
 	}
 
 	int succ = yyparse();
 
 	if(succ){
-		printf("\n Izi win !");
+		printf("\ngagné\n");
 	}
 	else{
-		printf("Too bad, looser !");
+		printf("\ngagné\n");
 	}
 	return(succ);
 }
