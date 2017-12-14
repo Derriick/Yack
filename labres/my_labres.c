@@ -26,8 +26,6 @@ int main(int argc, char *argv[])
 	if (f)
 		fclose(f);
 
-	printf("%d\n", res);
-
 	if (!res)
 		printf("gagné\n");
 	else
