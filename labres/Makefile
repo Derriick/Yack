@@ -1,5 +1,5 @@
-APP = labgen
-SRC = my_labgen.c labgen.yy.c
+APP = labres1 labres2
+SRC = my_labres.c labres.yy.c
 
 CC = gcc
 YACC = yacc
@@ -11,7 +11,7 @@ all: $(APP)
 	$(YACC) -o $@.c $< -v
 	$(CC) -o $@ $@.c
 
-labgen.yy.c: labgen.l
+labres.yy.c: labres.l
 	$(FLEX) -o $@ $<
 
 clean:
