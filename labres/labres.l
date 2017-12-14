@@ -16,4 +16,7 @@
 [ \n\t]	;
 #.*\n		;
 
-.			{ return *yytext; }
+.			{
+	fprintf(stderr, "Line %d: syntax error (near %s)\n", yylineno, yytext);
+	exit(1);
+}

@@ -2,8 +2,8 @@
 	#include <stdio.h>
 	#include <stdlib.h>
 
-	void yyerror(const char *mess);
-	int yylex();
+	void	yyerror(const char *mess);
+	int	yylex();
 %}
 
 
@@ -13,6 +13,7 @@
 %token tk_WALL tk_UNWALL tk_TOGGLE
 %token tk_R tk_F
 %token tk_WH tk_MD
+%token tk_arrow
 
 %left '+' '-'
 %left '*' '/'
@@ -47,8 +48,8 @@ instruction
 	| wall tk_R pt pt
 	| wall tk_R tk_F pt pt
 	| wall tk_FOR var_list tk_IN range_list '(' expr ',' expr ')'
-	| tk_WH pt pt_arrow_list
-	| tk_MD dest_list
+	| tk_WH pt_arrow_list
+	| tk_MD pt dest_list
 ;
 
 var
@@ -102,7 +103,7 @@ ptri_list
 ;
 
 pt_arrow_list
-	: pt_arrow_list '-' '>' pt
+	: pt_arrow_list tk_arrow pt
 	| pt
 ;
 

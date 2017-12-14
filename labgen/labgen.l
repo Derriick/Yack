@@ -16,6 +16,20 @@
 "R"						{ return tk_R;			}
 "F"						{ return tk_F;			}
 "FOR"						{ return tk_FOR;		}
+"WH"						{ return tk_WH;		}
+"MD"						{ return tk_MD;		}
+
+"NE"						{return DIR;}
+"NW"						{return DIR;}
+"SE"						{return DIR;}
+"SW"						{return DIR;}
+
+"N"						{return DIR;}
+"S"						{return DIR;}
+"E"						{return DIR;}
+"W"						{return DIR;}
+
+-+>						{ return tk_arrow;	}
 [a-zA-Z][a-zA-Z0-9]*	{ return IDENT;		}
 
 [ \t\n]					;

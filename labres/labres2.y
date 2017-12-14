@@ -2,8 +2,8 @@
 	#include <stdio.h>
 	#include <stdlib.h>
 
-	void yyerror(const char *mess);
-	int yylex();
+	void	yyerror(const char *mess);
+	int	yylex();
 %}
 
 %token N E S W
@@ -16,21 +16,18 @@
 cell_0_0
 	: E	cell_1_0 
 	| S	cell_0_1
-	| other lost
 ;
 
 cell_1_0
 	: SE	cell_2_1
 	| SW	cell_0_1
 	| W	cell_0_0
-	| other lost
 ;
 
 cell_0_1
 	: NE	cell_1_0
 	| SE	cell_1_2
 	| N	cell_0_0
-	| other lost
 ;
 
 
@@ -38,7 +35,6 @@ cell_1_2
 	: NE	cell_2_1
 	| NW	cell_0_1
 	| E	cell_2_2
-	| other lost
 ;
 
 
@@ -46,20 +42,9 @@ cell_2_1
 	: NW	cell_1_0
 	| SW	cell_1_2
 	| S	cell_2_2
-	| other lost
 ;
 
 cell_2_2
-	: { return 1; }
-;
-
-other
-	: N
-	| E
-	| S
-	| W
-
-lost
 	: { return 0; }
 ;
 

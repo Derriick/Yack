@@ -1,7 +1,6 @@
 void yyerror(const char *mess)
 {
-	fprintf(stderr, "Line %d: %s (near %s)\n", yylineno, mess, yytext);
-	exit(1);
+	return;
 }
 
 int main(int argc, char *argv[])
@@ -27,11 +26,12 @@ int main(int argc, char *argv[])
 	if (f)
 		fclose(f);
 
-	if (res == 1)
+	printf("%d\n", res);
+
+	if (!res)
 		printf("gagné\n");
 	else
 		printf("perdu\n");
-
 
 	return res;
 }
