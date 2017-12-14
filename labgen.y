@@ -10,7 +10,6 @@
 /* définition des terminaux */
 %token CNUM IDENT
 %token tk_SIZE tk_IN tk_OUT tk_SHOW tk_WALL tk_PTA tk_PTD tk_TOGGLE tk_R tk_F tk_FOR
-%token tk_SHARP
 
 %left '+' '-'
 %left '*' '/'

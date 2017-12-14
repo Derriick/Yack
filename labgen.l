@@ -3,7 +3,6 @@
 %%
 
 [0-9]+					{ yylval = atoi(yytext); return CNUM; }
-[a-zA-Z][0-9a-zA-Z]*	{ return IDENT;		}
 "SIZE"					{ return tk_SIZE;		}
 "IN"						{ return tk_IN;		}
 "OUT"						{ return tk_OUT;		}
@@ -15,8 +14,9 @@
 "R"						{ return tk_R;			}
 "F"						{ return tk_F;			}
 "FOR"						{ return tk_FOR;		}
-"#"						{ return tk_SHARP;	}
+[a-zA-Z][a-zA-Z0-9]*	{ return IDENT;		}
 
-[\t\n]					;
+[ \t\n]					;
+#.*\n						;
 
 .							{ return *yytext; }
