@@ -1,0 +1,15 @@
+max = 5;
+SIZE max,max+1;
+IN (2,0);
+OUT (0,max) (max,0) ;
+# les murs
+WALL PTA (3,0) (3,1) (4,2)
+(4,3) (max,max-1);
+WALL PTD (0,2) (1,-1) (0,1):3
+(1,0) (1,+1) (1,0);
+# les trous de vers
+WH (3,4) --> (2,max) ; # W0 w0
+WH (0,1) --> (0,3)
+ ; # W1 w1
+# la porte magique (A et ai)
+MD (3,2) W (0,0) E (max,2) ;

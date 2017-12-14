@@ -1,4 +1,5 @@
 %option noyywrap
+%option yylineno
 
 %%
 
@@ -8,9 +9,10 @@
 "OUT"						{ return tk_OUT;		}
 "SHOW"					{ return tk_SHOW;		}
 "WALL"					{ return tk_WALL;		}
+"UNWALL"					{ return tk_UNWALL;	}
+"TOGGLE"					{ return tk_TOGGLE;	}
 "PTA"						{ return tk_PTA;		}
 "PTD"						{ return tk_PTD;		}
-"TOGGLE"					{ return tk_TOGGLE;	}
 "R"						{ return tk_R;			}
 "F"						{ return tk_F;			}
 "FOR"						{ return tk_FOR;		}
