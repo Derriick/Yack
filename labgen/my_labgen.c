@@ -1,10 +1,27 @@
-void yyerror(const char *mess)
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+
+/*void yyerror(const char *mess)
 {
 	fprintf(stderr, "file:%d: %s (near %s)\n", yylineno, mess, yytext);
 	exit(1);
+}*/
+
+extern void yyerror(const char* fmt, ...)
+{
+	char buf[10000];
+	va_list ap;
+
+	va_start(ap, fmt);
+	vsprintf(buf, fmt, ap);
+	va_end(ap);
+
+	fprintf(stderr, "%s:%d: %s (near %s)\n", gl_infname, yylineno, buf, yytext);
+	exit(1);
 }
 
-int main(int argc, char *argv[])
+/*int main(int argc, char *argv[])
 {
 	FILE *f = NULL;
 	int res;
@@ -41,4 +58,4 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Usage: %s [file] [exe]\n", argv[0]);
 		exit(1);
 	}
-}
+}*/

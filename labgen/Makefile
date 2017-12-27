@@ -1,18 +1,33 @@
-APP = labgen
-SRC = my_labgen.c labgen.yy.c
+APP	= labgen
+SRC	= my_labgen.c
+AUGE = auge/
 
-CC = gcc
-YACC = yacc
-FLEX = lex
+AUGE_SRC = $(wildcard $(AUGE)*.c)
+AUGE_OBJ = $(AUGE_SRC:.c=.o)
+
+CC		= gcc
+CFLAGS	= 
+YACC	= bison
+YFLAGS	= -v
+FLEX	= lex
+FFLAGS	=
 
 all: $(APP)
 
-%: %.y $(SRC)
-	$(YACC) -o $@.c $< -v
-	$(CC) -o $@ $@.c
+%.c: %.y
+	$(YACC) $(YFLAGS) -o $@ $<
 
-labgen.yy.c: labgen.l
-	$(FLEX) -o $@ $<
+%.yy.c: %.l
+	$(FLEX) $(FFLAGS) -o $@ $<
+
+%.o: %.c %.yy.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+$(AUGE)%.o: $(AUGE)%.c $(AUGE)%.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+$(APP): $(APP).o $(AUGE_OBJ)
+	$(CC) -o $@ $^
 
 clean:
-	rm -rf $(APP) $(APP:=.c) *.yy.c *.o *.output 2>/dev/null
+	rm -rf $(APP) $(APP).c *.yy.c *.o $(AUGE)*.o *.output 2>/dev/null

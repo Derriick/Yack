@@ -12,3 +12,5 @@ lex\.yy\.c
 *.sublime-project
 
 *.sublime-workspace
+
+*.gz

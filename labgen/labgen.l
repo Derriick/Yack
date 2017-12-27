@@ -3,36 +3,28 @@
 
 %%
 
-[0-9]+					{ yylval = atoi(yytext); return CNUM; }
-"SIZE"					{ return tk_SIZE;		}
-"IN"						{ return tk_IN;		}
-"OUT"						{ return tk_OUT;		}
-"SHOW"					{ return tk_SHOW;		}
-"WALL"					{ return tk_WALL;		}
-"UNWALL"					{ return tk_UNWALL;	}
-"TOGGLE"					{ return tk_TOGGLE;	}
-"PTA"						{ return tk_PTA;		}
-"PTD"						{ return tk_PTD;		}
-"R"						{ return tk_R;			}
-"F"						{ return tk_F;			}
-"FOR"						{ return tk_FOR;		}
-"WH"						{ return tk_WH;		}
-"MD"						{ return tk_MD;		}
+#.*\n		;
 
-"NE"						{return DIR;}
-"NW"						{return DIR;}
-"SE"						{return DIR;}
-"SW"						{return DIR;}
+[0-9]+	{ yylval = atoi(yytext); return CNUM; }
+"SIZE"	{ return SIZE;		}
+"IN"		{ return IN;		}
+"OUT"		{ return OUT;		}
+"SHOW"	{ return SHOW;		}
+"WALL"	{ return WALL;		}
+"UNWALL"	{ return UNWALL;	}
+"TOGGLE"	{ return TOGGLE;	}
+"PTA"		{ return PTA;		}
+"PTD"		{ return PTD;		}
+"R"		{ return R;			}
+"F"		{ return F;			}
+"FOR"		{ return FOR;		}
+"WH"		{ return WH;		}
+"MD"		{ return MD;		}
 
-"N"						{return DIR;}
-"S"						{return DIR;}
-"E"						{return DIR;}
-"W"						{return DIR;}
+"NE" | "NW" | "SE" | "SW" | "N" | "S" | "E" | "W"	{ return DIR; }
 
--+>						{ return tk_arrow;	}
+-+>						{ return ARROW;	}
 [a-zA-Z][a-zA-Z0-9]*	{ return IDENT;		}
 
-[ \t\n]					;
-#.*\n						;
-
-.							{ return *yytext; }
+[ \t\n]	;
+.	{ return *yytext; }

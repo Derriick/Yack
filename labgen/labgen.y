@@ -1,19 +1,20 @@
 %{
-	#include <stdio.h>
-	#include <stdlib.h>
+	//typedef const char* Cstr;
 
-	void	yyerror(const char *mess);
+	#include "auge/top.h"
+	#include "auge/lds.h"
+
 	int	yylex();
 %}
 
 
 /* définition des terminaux */
 %token CNUM IDENT DIR
-%token tk_SIZE tk_IN tk_OUT tk_SHOW tk_PTA tk_PTD tk_FOR
-%token tk_WALL tk_UNWALL tk_TOGGLE
-%token tk_R tk_F
-%token tk_WH tk_MD
-%token tk_arrow
+%token SIZE IN OUT SHOW PTA PTD FOR
+%token WALL UNWALL TOGGLE
+%token R F
+%token WH MD
+%token ARROW
 
 %left '+' '-'
 %left '*' '/'
@@ -25,31 +26,44 @@
 %%
 
 labyrinthe
-	: suite_instruction;
+	: suite_declaration size_initialization suite_instruction
+;
+
+suite_declaration
+	: suite_declaration declaration ';'
+	| declaration ';'
+;
+
+declaration
+	: ';'
+	| IDENT '=' xcst
+	| IDENT op '=' xcst
+
+size_initialization
+	: SIZE xcst ';'				{ ($2 < 0 || $2 >= LDS_SIZE) ? yyerror("%d: invalid Lab Size") : lds_size_set(gl_lds, $2, $2); }
+	| SIZE xcst ',' xcst ';'	{ ($2 < 0 || $2 >= LDS_SIZE || $4 < 0 || $4 >= LDS_SIZE) ? yyerror("(%d, %d): invalid Lab Size") : lds_size_set(gl_lds, $2, $4); }
+;
 
 suite_instruction
 	: suite_instruction instruction ';'
 	| instruction ';'
+	| suite_instruction SHOW
+	| SHOW
 ;
 
 instruction
 	: ';'
-	| IDENT '=' xcst
-	| tk_SIZE xcst
-	| tk_SIZE xcst ',' xcst
-	| tk_IN pt
-	| tk_OUT pt_list
-	| tk_SHOW
-	| IDENT op '=' xcst
+	| IN pt
+	| OUT pt_list
 	| wall
-	| wall tk_PTA pt_list
-	| wall tk_PTD pt
-	| wall tk_PTD pt ptri_list
-	| wall tk_R pt pt
-	| wall tk_R tk_F pt pt
-	| wall tk_FOR var_list tk_IN range_list '(' expr ',' expr ')'
-	| tk_WH pt_arrow_list
-	| tk_MD pt dest_list
+	| wall PTA pt_list
+	| wall PTD pt
+	| wall PTD pt ptri_list
+	| wall R pt pt
+	| wall R F pt pt
+	| wall FOR var_list IN range_list '(' expr ',' expr ')'
+	| WH pt_arrow_list
+	| MD pt dest_list
 ;
 
 var
@@ -64,18 +78,26 @@ var_list
 
 expr
 	: var
-	| expr '+' expr
-	| expr '-' expr
-	| expr '*' expr
-	| expr '/' expr
-	| expr '%' expr
-	| '+' expr
-	| '-' expr
-	| '(' expr ')'
+	| expr '+' expr	{ $$ = $1 + $3;	}
+	| expr '-' expr	{ $$ = $1 - $3;	}
+	| expr '*' expr	{ $$ = $1 * $3;	}
+	| expr '/' expr	{ $$ = $1 / $3;	}
+	| expr '%' expr	{ $$ = $1 % $3;	}
+	| '+' expr			{ $$ = $2;			}
+	| '-' expr			{ $$ = - $2;		}
+	| '(' expr ')'		{ $$ = ( $2 );		}
 ;
 
 xcst
-	: expr
+	: var
+	| xcst '+' xcst	{ $$ = $1 + $3;	}
+	| xcst '-' xcst	{ $$ = $1 - $3;	}
+	| xcst '*' xcst	{ $$ = $1 * $3;	}
+	| xcst '/' xcst	{ $$ = $1 / $3;	}
+	| xcst '%' xcst	{ $$ = $1 % $3;	}
+	| '+' xcst			{ $$ = $2;			}
+	| '-' xcst			{ $$ = - $2;		}
+	| '(' xcst ')'		{ $$ = ( $2 );		}
 ;
 
 pt
@@ -103,7 +125,7 @@ ptri_list
 ;
 
 pt_arrow_list
-	: pt_arrow_list tk_arrow pt
+	: pt_arrow_list ARROW pt
 	| pt
 ;
 
@@ -126,9 +148,9 @@ range_list
 ;
 
 wall
-	: tk_WALL
-	| tk_UNWALL
-	| tk_TOGGLE
+	: WALL
+	| UNWALL
+	| TOGGLE
 ;
 
 dest_list
