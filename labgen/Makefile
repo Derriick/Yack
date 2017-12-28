@@ -6,7 +6,7 @@ AUGE_SRC = $(wildcard $(AUGE)*.c)
 AUGE_OBJ = $(AUGE_SRC:.c=.o)
 
 CC		= gcc
-CFLAGS	= 
+CFLAGS	= -Wall -Wextra -pedantic
 YACC	= bison
 YFLAGS	= -v
 FLEX	= lex
@@ -14,7 +14,7 @@ FFLAGS	=
 
 all: $(APP)
 
-%.c: %.y
+%.c: %.y $(SRC)
 	$(YACC) $(YFLAGS) -o $@ $<
 
 %.yy.c: %.l

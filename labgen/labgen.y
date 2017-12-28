@@ -1,8 +1,12 @@
 %{
+	#include <stdio.h>
+	#include <stdlib.h>
+
 	//typedef const char* Cstr;
 
 	#include "auge/top.h"
 	#include "auge/lds.h"
+	#include "auge/vars.h"
 
 	int	yylex();
 %}
@@ -15,6 +19,14 @@
 %token R F
 %token WH MD
 %token ARROW
+
+%union {
+	int integer;
+	char* string;
+}
+
+%type <integer> CNUM xcst expr
+%type <string> IDENT
 
 %left '+' '-'
 %left '*' '/'
@@ -36,8 +48,12 @@ suite_declaration
 
 declaration
 	: ';'
-	| IDENT '=' xcst
-	| IDENT op '=' xcst
+	| IDENT '=' xcst		{ vars_chgOrAddEated(gl_pdt->vars, $1, $3); }
+	| IDENT '+' '=' xcst	{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? (v->val += $4) : yyerror("%s undefined\n", $1); }
+	| IDENT '-' '=' xcst	{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? (v->val -= $4) : yyerror("%s undefined\n", $1); }
+	| IDENT '*' '=' xcst	{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? (v->val *= $4) : yyerror("%s undefined\n", $1); }
+	| IDENT '/' '=' xcst	{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? (v->val /= $4) : yyerror("%s undefined\n", $1); }
+	| IDENT '%' '=' xcst	{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? (v->val %= $4) : yyerror("%s undefined\n", $1); }
 
 size_initialization
 	: SIZE xcst ';'				{ ($2 < 0 || $2 >= LDS_SIZE) ? yyerror("%d: invalid Lab Size") : lds_size_set(gl_lds, $2, $2); }
@@ -66,38 +82,30 @@ instruction
 	| MD pt dest_list
 ;
 
-var
-	: CNUM
-	| IDENT
-;
-
-var_list
-	: var_list var
-	| var
-;
-
 expr
-	: var
+	: CNUM			{ $$ = $1;		}
+	| IDENT			{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? ($$ = v->val) : ($$ = $1); }
 	| expr '+' expr	{ $$ = $1 + $3;	}
 	| expr '-' expr	{ $$ = $1 - $3;	}
 	| expr '*' expr	{ $$ = $1 * $3;	}
 	| expr '/' expr	{ $$ = $1 / $3;	}
 	| expr '%' expr	{ $$ = $1 % $3;	}
-	| '+' expr			{ $$ = $2;			}
-	| '-' expr			{ $$ = - $2;		}
-	| '(' expr ')'		{ $$ = ( $2 );		}
+	| '+' expr		{ $$ = $2;		}
+	| '-' expr		{ $$ = - $2;	}
+	| '(' expr ')'	{ $$ = ( $2 );	}
 ;
 
 xcst
-	: var
+	: CNUM			{ $$ = $1;		}
+	| IDENT			{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? ($$ = v->val) : yyerror("%s undefined\n", $1); }
 	| xcst '+' xcst	{ $$ = $1 + $3;	}
 	| xcst '-' xcst	{ $$ = $1 - $3;	}
 	| xcst '*' xcst	{ $$ = $1 * $3;	}
 	| xcst '/' xcst	{ $$ = $1 / $3;	}
 	| xcst '%' xcst	{ $$ = $1 % $3;	}
-	| '+' xcst			{ $$ = $2;			}
-	| '-' xcst			{ $$ = - $2;		}
-	| '(' xcst ')'		{ $$ = ( $2 );		}
+	| '+' xcst		{ $$ = $2;		}
+	| '-' xcst		{ $$ = - $2;	}
+	| '(' xcst ')'	{ $$ = ( $2 );	}
 ;
 
 pt
@@ -129,12 +137,9 @@ pt_arrow_list
 	| pt
 ;
 
-op
-	: '+'
-	| '-'
-	| '*'
-	| '/'
-	| '%'
+var_list
+	: var_list IDENT
+	| IDENT
 ;
 
 range
