@@ -24,10 +24,18 @@
 %union {
 	int integer;
 	char* string;
+	Tpoints* type_pt_list;
+	Tpoint type_point;
+	Tpoint3s* type_ptri_list;
+	Tpoint3s type_ptri;
 }
 
 %type <integer> CNUM xcst expr
 %type <string> IDENT
+%type <type_pt_list> pt_list
+%type <type_point> pt
+%type <type_ptri_list> ptri_list 
+%type <type_ptri> ptri
 
 %left '+' '-'
 %left '*' '/'
@@ -113,26 +121,23 @@ xcst
 ;
 
 pt
-	: '(' xcst ',' xcst ')'
+	: '(' xcst ',' xcst ')' { if (lds_check_xy(gl_lds,$2,$4)) yyerror("[%s:%s] outside of the labyrinth\n",$2,$4); $$.x = $2; $$.y = $4; }
 ;
 
 pt_list
-	: pt_list pt
-	| pt
+	: pt_list pt 	{ pts_app_pt($1,$2); $$=$1;}
+	| pt 			{ $$ = pts_new_pt($1);}
 ;
 
-ri
-	: xcst
-	| '*'
-;
 
 ptri
-	: pt
-	| pt ':' ri
+	: pt 			{ Tpoint3 pt3; pt3.Tpoint = $1; pt3.z = 1; $$=pt3; }
+	| pt ':' xcst	{ if ($3 <= 0) yyerror("[%s:%s]:$3 error \n",$1.x, $1.y, $3); Tpoint3 pt3; pt3.Tpoint = $1; pt3.z = $3; $$=pt3; }
+	| pt ':' '*'	{ Tpoint3 pt3; pt3.Tpoint = $1; pt3.z = 0; $$=pt3; }
 ;
 
 ptri_list
-	: ptri_list ptri
+	: ptri_list ptri 	{ pt3s_app_pt3 ($1, $2[0]) }
 	| ptri
 ;
 
