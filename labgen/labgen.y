@@ -34,11 +34,11 @@
 %left '%'
 
 /* règle BNF principale */
-%start labyrinthe
+%start labyrinth
 
 %%
 
-labyrinthe
+labyrinth
 	: suite_declaration size_initialization suite_instruction
 ;
 
@@ -50,23 +50,26 @@ suite_declaration
 declaration
 	: ';'
 	| IDENT '=' xcst		{ vars_chgOrAddEated(gl_pdt->vars, $1, $3); }
-	| IDENT '+' '=' xcst	{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? (v->val += $4) : yyerror("%s undefined\n", $1); }
-	| IDENT '-' '=' xcst	{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? (v->val -= $4) : yyerror("%s undefined\n", $1); }
-	| IDENT '*' '=' xcst	{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? (v->val *= $4) : yyerror("%s undefined\n", $1); }
-	| IDENT '/' '=' xcst	{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? (v->val /= $4) : yyerror("%s undefined\n", $1); }
-	| IDENT '%' '=' xcst	{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? (v->val %= $4) : yyerror("%s undefined\n", $1); }
+	| IDENT '+' '=' xcst	{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) v->val += $4; else yyerror("%s undefined\n", $1); }
+	| IDENT '-' '=' xcst	{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) v->val -= $4; else yyerror("%s undefined\n", $1); }
+	| IDENT '*' '=' xcst	{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) v->val *= $4; else yyerror("%s undefined\n", $1); }
+	| IDENT '/' '=' xcst	{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) v->val /= $4; else yyerror("%s undefined\n", $1); }
+	| IDENT '%' '=' xcst	{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) v->val %= $4; else yyerror("%s undefined\n", $1); }
 
 size_initialization
-	: SIZE xcst ';'				{ ($2 < 0 || $2 >= LDS_SIZE) ? yyerror("%d: invalid Lab Size") : lds_size_set(gl_lds, $2, $2); }
-	| SIZE xcst ',' xcst ';'	{ ($2 < 0 || $2 >= LDS_SIZE || $4 < 0 || $4 >= LDS_SIZE) ? yyerror("(%d, %d): invalid Lab Size") : lds_size_set(gl_lds, $2, $4); }
+	: SIZE xcst ';'				{ if ($2 < 0 || $2 >= LDS_SIZE) yyerror("%d: invalid Lab Size"); else lds_size_set(gl_lds, $2, $2); }
+	| SIZE xcst ',' xcst ';'	{ if ($2 < 0 || $2 >= LDS_SIZE || $4 < 0 || $4 >= LDS_SIZE) yyerror("(%d, %d): invalid Lab Size"); else lds_size_set(gl_lds, $2, $4); }
 ;
 
 suite_instruction
-	: suite_instruction instruction ';'
+	: suite_instruction show
+	| show
+	| suite_instruction instruction ';'
 	| instruction ';'
-	| suite_instruction SHOW
-	| SHOW
 ;
+
+show
+	: SHOW	{ lds_dump(gl_lds, stdout); }
 
 instruction
 	: ';'
@@ -85,7 +88,7 @@ instruction
 
 expr
 	: CNUM			{ $$ = $1;		}
-	| IDENT			{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? ($$ = v->val) : ($$ = $1); }
+	| IDENT			{ Tvar *v; $$ = (v = vars_get(gl_pdt->vars, $1)) ? v->val : $1; }
 	| expr '+' expr	{ $$ = $1 + $3;	}
 	| expr '-' expr	{ $$ = $1 - $3;	}
 	| expr '*' expr	{ $$ = $1 * $3;	}
@@ -98,7 +101,7 @@ expr
 
 xcst
 	: CNUM			{ $$ = $1;		}
-	| IDENT			{ Tvar *v; (v = vars_get(gl_pdt->vars, $1)) ? ($$ = v->val) : yyerror("%s undefined\n", $1); }
+	| IDENT			{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) $$ = v->val; else yyerror("%s undefined\n", $1); }
 	| xcst '+' xcst	{ $$ = $1 + $3;	}
 	| xcst '-' xcst	{ $$ = $1 - $3;	}
 	| xcst '*' xcst	{ $$ = $1 * $3;	}
