@@ -7,6 +7,7 @@
 	#include "auge/top.h"
 	#include "auge/lds.h"
 	#include "auge/vars.h"
+	#include "auge/pdt.h"
 
 	int	yylex();
 %}

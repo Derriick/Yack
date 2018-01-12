@@ -1,3 +1,5 @@
+#include <stdarg.h>
+
 /*void yyerror(const char *mess)
 {
 	fprintf(stderr, "file:%d: %s (near %s)\n", yylineno, mess, yytext);
