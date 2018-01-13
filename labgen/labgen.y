@@ -59,16 +59,58 @@ suite_declaration
 
 declaration
 	: ';'
-	| IDENT '=' xcst		{ vars_chgOrAddEated(gl_pdt->vars, $1, $3); }
-	| IDENT '+' '=' xcst	{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) v->val += $4; else yyerror("%s undefined\n", $1); }
-	| IDENT '-' '=' xcst	{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) v->val -= $4; else yyerror("%s undefined\n", $1); }
-	| IDENT '*' '=' xcst	{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) v->val *= $4; else yyerror("%s undefined\n", $1); }
-	| IDENT '/' '=' xcst	{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) v->val /= $4; else yyerror("%s undefined\n", $1); }
-	| IDENT '%' '=' xcst	{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) v->val %= $4; else yyerror("%s undefined\n", $1); }
+	| IDENT '=' xcst {
+			vars_chgOrAddEated(gl_pdt->vars, $1, $3);
+		}
+	| IDENT '+' '=' xcst {
+			Tvar *v;
+			if ((v = vars_get(gl_pdt->vars, $1)))
+				v->val += $4;
+			else
+				yyerror("%s undefined\n", $1);
+		}
+	| IDENT '-' '=' xcst {
+			Tvar *v;
+			if ((v = vars_get(gl_pdt->vars, $1)))
+				v->val -= $4;
+			else
+				yyerror("%s undefined\n", $1);
+		}
+	| IDENT '*' '=' xcst {
+			Tvar *v;
+			if ((v = vars_get(gl_pdt->vars, $1)))
+				v->val *= $4;
+			else
+				yyerror("%s undefined\n", $1);
+		}
+	| IDENT '/' '=' xcst {
+			Tvar *v;
+			if ((v = vars_get(gl_pdt->vars, $1)))
+				v->val /= $4;
+			else
+				yyerror("%s undefined\n", $1);
+		}
+	| IDENT '%' '=' xcst {
+			Tvar *v;
+			if ((v = vars_get(gl_pdt->vars, $1)))
+				v->val %= $4;
+			else
+				yyerror("%s undefined\n", $1);
+		}
 
 size_initialization
-	: SIZE xcst ';'				{ if ($2 < 0 || $2 >= LDS_SIZE) yyerror("%d: invalid Lab Size"); else lds_size_set(gl_lds, $2, $2); }
-	| SIZE xcst ',' xcst ';'	{ if ($2 < 0 || $2 >= LDS_SIZE || $4 < 0 || $4 >= LDS_SIZE) yyerror("(%d, %d): invalid Lab Size"); else lds_size_set(gl_lds, $2, $4); }
+	: SIZE xcst ';' {
+			if ($2 < 0 || $2 >= LDS_SIZE)
+				yyerror("%d: invalid Lab Size");
+			else
+				lds_size_set(gl_lds, $2, $2);
+		}
+	| SIZE xcst ',' xcst ';' {
+			if ($2 < 0 || $2 >= LDS_SIZE || $4 < 0 || $4 >= LDS_SIZE)
+				yyerror("%dx%d: invalid Lab Size");
+			else
+				lds_size_set(gl_lds, $2, $4);
+		}
 ;
 
 suite_instruction
@@ -110,14 +152,14 @@ expr
 ;
 
 xcst
-	: CNUM	{ $$ = $1;	}
-	| IDENT	{
-		Tvar *v;
-		if ((v = vars_get(gl_pdt->vars, $1)))
-			$$ = v->val;
-		else
-			yyerror("%s undefined\n", $1);
-	}
+	: CNUM { $$ = $1; }
+	| IDENT {
+			Tvar *v;
+			if ((v = vars_get(gl_pdt->vars, $1)))
+				$$ = v->val;
+			else
+				yyerror("%s undefined\n", $1);
+		}
 	| xcst '+' xcst	{ $$ = $1 + $3;	}
 	| xcst '-' xcst	{ $$ = $1 - $3;	}
 	| xcst '*' xcst	{ $$ = $1 * $3;	}
@@ -129,55 +171,55 @@ xcst
 ;
 
 pt
-	: '(' xcst ',' xcst ')'	{
-		if (lds_check_xy(gl_lds,$2,$4))
-			yyerror("[%s:%s] outside of the labyrinth\n",$2,$4);
-		else
-			$$.x = $2; $$.y = $4;
-	}
+	: '(' xcst ',' xcst ')' {
+			if (lds_check_xy(gl_lds, $2, $4))
+				yyerror("[%s:%s] outside of the labyrinth\n", $2, $4);
+			else
+				$$.x = $2; $$.y = $4;
+		}
 ;
 
 pt_list
 	: pt_list pt {
-		pts_app_pt($1, $2);
-		$$ = $1;
-	}
+			pts_app_pt($1, $2);
+			$$ = $1;
+		}
 	| pt { $$ = pts_new_pt($1); }
 ;
 
 
 pt3
 	: pt {
-		$$.xy = $1;
-		$$.z = 1;
-	}
-	| pt ':' xcst {
-		if ($3 <= 0)
-			yyerror("$3 is negative\n", $3);
-		else {
 			$$.xy = $1;
-			$$.z = $3;
+			$$.z = 1;
 		}
-	}
+	| pt ':' xcst {
+			if ($3 <= 0)
+				yyerror("$3 is negative\n", $3);
+			else {
+				$$.xy = $1;
+				$$.z = $3;
+			}
+		}
 	| pt ':' '*' {
-		$$.xy = $1;
-		$$.z = 0;
-	}
+			$$.xy = $1;
+			$$.z = 0;
+		}
 ;
 
 pt3_list
 	: pt3_list pt3 {
-		pt3s_app_pt3($1, $2);
-		$$ = $1;
-	}
+			pt3s_app_pt3($1, $2);
+			$$ = $1;
+		}
 	| pt3 { $$ = pt3s_new_p2z($1.xy, $1.z); }
 ;
 
 pt_arrow_list
 	: pt_arrow_list ARROW pt {
-		pts_app_pt($1, $3);
-		$$ = $1;
-	}
+			pts_app_pt($1, $3);
+			$$ = $1;
+		}
 	| pt { $$ = pts_new_pt($1); }
 ;
 
