@@ -9,6 +9,9 @@
 	#include "auge/expr.h"
 	#include "auge/pdt.h"
 
+	#define MIN(a, b) ((a)<(b) ? (a) : (b))
+	#define MAX(a, b) ((a)>(b) ? (a) : (b))
+
 	int	yylex();
 %}
 
@@ -29,7 +32,8 @@
 	Tpoints* type_pt_list;
 	Tpoint3 type_pt3;
 	Tpoint3s* type_pt3_list;
-	TdrawOpt type_dopt
+	TdrawOpt type_dopt;
+	Twr type_dir;
 }
 
 %type <integer> CNUM xcst
@@ -38,8 +42,9 @@
 %type <type_pt> pt
 %type <type_pt_list> pt_list pt_arrow_list
 %type <type_pt3> pt3 range
-%type <type_pt3_list> pt3_list vars_in_ranges
+%type <type_pt3_list> pt3_list vars_in_ranges dest_list
 %type <type_dopt> dopt
+%type <type_dir> DIR
 
 %left '+' '-'
 %left '*' '/'
@@ -123,21 +128,95 @@ suite_instruction
 ;
 
 show
-	: SHOW	{ lds_dump(gl_lds, stdout); }
+	: SHOW { lds_dump(gl_lds, stdout); }
 
 instruction
 	: ';'
-	| IN pt
-	| OUT pt_list
-	| dopt
-	| dopt PTA pt_list
+	| IN pt {
+			if (lds_checkborder_pt(gl_lds, $2))
+				yyerror("Error: (%d,%d) must be on the border to be an input", $2.x, $2.y);
+			else {
+				gl_lds->squares[$2.x][$2.y].kind = LDS_IN;
+				gl_lds->in = $2;
+			}
+		}
+	| OUT pt_list {
+			for (int i = 0; i < $2->nb; ++i) {
+				Tpoint pt = $2->t[i];
+				if (lds_checkborder_pt(gl_lds, pt))
+					yyerror("Error: (%d,%d) must be on the border to be an output",  pt.x, pt.y);
+				else
+					gl_lds->squares[pt.x][pt.y].kind = LDS_OUT;
+			}
+		}
+	| dopt {
+		Tpoint size = (Tpoint){gl_lds->dx, gl_lds->dy};
+		for (int i = 0; i < size.x; ++i)
+			for (int j = 0; j < size.y; ++j)
+				lds_draw_xy(gl_lds, $1, i, j);
+	}
+	| dopt PTA pt_list {
+			lds_draw_pts(gl_lds, $1, $3);
+			pts_free($3);
+		}
 	| dopt PTD pt
-	| dopt PTD pt pt3_list
-	| dopt R pt pt
-	| dopt R F pt pt
-	| dopt FOR vars_in_ranges '(' expr ',' expr ')'
-	| WH pt_arrow_list
-	| MD pt dest_list
+	| dopt PTD pt pt3_list {
+		// @TODO
+		pt3s_free($4);
+	}
+	| dopt R pt pt {
+			Tpoint rectMin = (Tpoint){MIN($3.x, $4.x), MIN($3.y, $4.y)};
+			Tpoint rectMax = (Tpoint){MAX($3.x, $4.x), MAX($3.y, $4.y)};
+
+			for (int i = rectMin.x; i < rectMax.x; ++i) {
+				lds_draw_xy(gl_lds, $1, i, rectMin.y);
+				lds_draw_xy(gl_lds, $1, i, rectMax.y);
+			}
+
+			for (int i = rectMin.y + 1; i < rectMax.y - 1; ++i) {
+				lds_draw_xy(gl_lds, $1, rectMin.x, i);
+				lds_draw_xy(gl_lds, $1, rectMax.x, i);
+			}
+		}
+	| dopt R F pt pt {
+			Tpoint rectMin = (Tpoint){MIN($4.x, $5.x), MIN($4.y, $5.y)};
+			Tpoint rectMax = (Tpoint){MAX($4.x, $5.x), MAX($4.y, $5.y)};
+
+			for (int i = rectMin.x; i < rectMax.x; ++i)
+				for (int j = rectMin.y; j < rectMax.y; ++j)
+					lds_draw_xy(gl_lds, $1, i, j);
+		}
+	| dopt FOR vars_in_ranges '(' expr ',' expr ')' {
+
+			/**************************************/
+			/*********        TODO        *********/
+			/**************************************/
+		}
+	| WH pt_arrow_list {
+
+			// @TODO VERIFIER S'IL Y A DEJA QQCH SUR LA CASE
+			//       ET QUE LES POINTS SONT DIFFERENTS
+
+			for (int i = 0; i < $2->nb - 1; ++i)
+				pdt_wormhole_add(gl_pdt, $2->t[i], $2->t[i + 1]);
+			
+			pts_free($2);
+		}
+	| MD pt dest_list {
+
+			// @TODO VERIFIER S'IL Y A DEJA QQCH SUR LA CASE
+			//       ET QUE LES POINTS SONT DIFFERENTS
+
+			Tsqmd* sqmd = pdt_magicdoor_getcreate(gl_pdt, gl_lds, $2);
+
+			for (int i = 0; i < $3->nb; ++i) {
+				Tpoint3 pt3 = $3->t[i];
+
+				sqmd = lds_sqmd_update(sqmd, pt3.z, pt3.xy);
+			}
+
+			pt3s_free($3);
+		}
 ;
 
 expr
@@ -177,90 +256,64 @@ pt
 			if (lds_check_xy(gl_lds, $2, $4))
 				yyerror("[%s:%s] outside of the labyrinth\n", $2, $4);
 			else
-				$$.x = $2; $$.y = $4;
+				$$ = (Tpoint){$2, $4};
 		}
 ;
 
 pt_list
-	: pt_list pt {
-			pts_app_pt($1, $2);
-			$$ = $1;
-		}
+	: pt_list pt { pts_app_pt(($$ = $1), $2); }
 	| pt { $$ = pts_new_pt($1); }
 ;
 
 
 pt3
-	: pt {
-			$$.xy = $1;
-			$$.z = 1;
-		}
+	: pt { $$ = (Tpoint3){$1, 1}; }
 	| pt ':' xcst {
 			if ($3 <= 0)
 				yyerror("$3 can't be negative or null\n", $3);
-			else {
-				$$.xy = $1;
-				$$.z = $3;
-			}
+			else
+				$$ = (Tpoint3){$1, $3};
 		}
-	| pt ':' '*' {
-			$$.xy = $1;
-			$$.z = 0;
-		}
+	| pt ':' '*' { $$ = (Tpoint3){$1, 0}; }
 ;
 
 pt3_list
-	: pt3_list pt3 {
-			pt3s_app_pt3($1, $2);
-			$$ = $1;
-		}
+	: pt3_list pt3 { pt3s_app_pt3(($$ = $1), $2); }
 	| pt3 { $$ = pt3s_new_p2z($1.xy, $1.z); }
 ;
 
 pt_arrow_list
-	: pt_arrow_list ARROW pt {
-			pts_app_pt($1, $3);
-			$$ = $1;
+	: pt_arrow_list ARROW pt { pts_app_pt(($$ = $1), $3); }
+	| pt ARROW pt {
+			$$ = pts_new_pt($3);
+			pts_app_pt($$, $1);
 		}
-	| pt { $$ = pts_new_pt($1); }
 ;
 
 range
 	: '[' xcst ':' xcst ']' {
 			if ($2 < $4)
 				yyerror("Error: %d < %d\n", $2, $4);
-			else {
-				($$.xy).x = $2;
-				($$.xy).y = $4;
-				$$.z = 1;
-			}
+			else 
+				$$ = (Tpoint3){(Tpoint){$2, $4}, 1};
 		}
 	| '[' xcst ':' xcst ':' xcst ']' {
 			if ($2 < $4 || $6 < 1)
 				yyerror("Error: %d < %d or $6 < 1\n", $2, $4, $6);
-			else {
-				($$.xy).x = $2;
-				($$.xy).y = $4;
-				$$.z = $6;
-			}
+			else
+				$$ = (Tpoint3){(Tpoint){$2, $4}, $6};
 		}
 	| '[' xcst ':' xcst '[' {
 			if ($2 <= $4)
 				yyerror("Error: %d <= %d\n", $2, $4);
-			else {
-				($$.xy).x = $2;
-				($$.xy).y = $4 - 1;
-				$$.z = 1;
-			}
+			else
+				$$ = (Tpoint3){(Tpoint){$2, $4 - 1}, 1};
 		}
 	| '[' xcst ':' xcst ':' xcst '[' {
 			if ($2 <= $4 || $6 < 1)
 				yyerror("Error: %d <= %d or $6 < 1\n", $2, $4, $6);
-			else {
-				($$.xy).x = $2;
-				($$.xy).y = $4 - 1;
-				$$.z = $6;
-			}
+			else
+				$$ = (Tpoint3){(Tpoint){$2, $4 - 1}, $6};
 		}
 ;
 
@@ -271,8 +324,7 @@ vars_in_ranges
 	}
 	| IDENT vars_in_ranges range {
 		vars_chgOrAddEated(gl_pdt->vars, $1, ($3.xy).x);
-		pt3s_app_pt3($2, $3);
-		$$ = $2;
+		pt3s_app_pt3(($$ = $2), $3);
 	}
 ;
 
@@ -283,8 +335,8 @@ dopt
 ;
 
 dest_list
-	: dest_list DIR pt
-	| DIR pt
+	: dest_list DIR pt { pt3s_app_p2z(($$ = $1), $3, $2); }
+	| DIR pt { $$ = pt3s_new_p2z($2, $1); }
 ;
 
 %%
