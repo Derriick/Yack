@@ -1,7 +1,7 @@
 APP	= labgen
 AUGE = auge/
 
-YSRC = my_labgen.c
+YSRC = top.c
 CSRC = expr.c
 COBJ = $(CSRC:.c=.o)
 AUGE_SRC = $(wildcard $(AUGE)*.c)
@@ -25,8 +25,8 @@ all: $(APP)
 %.o: %.c %.yy.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-%.o: %.c %.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+# %.o: %.c %.h
+# 	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(AUGE)%.o: $(AUGE)%.c $(AUGE)%.h
 	$(CC) -o $@ -c $<

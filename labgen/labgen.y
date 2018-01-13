@@ -29,6 +29,7 @@
 	Tpoints* type_pt_list;
 	Tpoint3 type_pt3;
 	Tpoint3s* type_pt3_list;
+	TdrawOpt type_dopt
 }
 
 %type <integer> CNUM xcst
@@ -36,8 +37,9 @@
 %type <type_expr> expr
 %type <type_pt> pt
 %type <type_pt_list> pt_list pt_arrow_list
-%type <type_pt3> pt3
-%type <type_pt3_list> pt3_list 
+%type <type_pt3> pt3 range
+%type <type_pt3_list> pt3_list vars_in_ranges
+%type <type_dopt> dopt
 
 %left '+' '-'
 %left '*' '/'
@@ -63,35 +65,35 @@ declaration
 			vars_chgOrAddEated(gl_pdt->vars, $1, $3);
 		}
 	| IDENT '+' '=' xcst {
-			Tvar *v;
+			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val += $4;
 			else
 				yyerror("%s undefined\n", $1);
 		}
 	| IDENT '-' '=' xcst {
-			Tvar *v;
+			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val -= $4;
 			else
 				yyerror("%s undefined\n", $1);
 		}
 	| IDENT '*' '=' xcst {
-			Tvar *v;
+			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val *= $4;
 			else
 				yyerror("%s undefined\n", $1);
 		}
 	| IDENT '/' '=' xcst {
-			Tvar *v;
+			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val /= $4;
 			else
 				yyerror("%s undefined\n", $1);
 		}
 	| IDENT '%' '=' xcst {
-			Tvar *v;
+			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val %= $4;
 			else
@@ -127,20 +129,20 @@ instruction
 	: ';'
 	| IN pt
 	| OUT pt_list
-	| wall
-	| wall PTA pt_list
-	| wall PTD pt
-	| wall PTD pt pt3_list
-	| wall R pt pt
-	| wall R F pt pt
-	| wall FOR var_list IN range_list '(' expr ',' expr ')'
+	| dopt
+	| dopt PTA pt_list
+	| dopt PTD pt
+	| dopt PTD pt pt3_list
+	| dopt R pt pt
+	| dopt R F pt pt
+	| dopt FOR vars_in_ranges '(' expr ',' expr ')'
 	| WH pt_arrow_list
 	| MD pt dest_list
 ;
 
 expr
 	: CNUM			{ $$ = expr_cst($1);					}
-	| IDENT			{ $$ = expr_varCloned($1);				}
+	| IDENT			{ $$ = expr_varEated($1);				}
 	| expr '+' expr	{ $$ = expr_binOp(EXPKD_PLUS, $1, $3);	}
 	| expr '-' expr	{ $$ = expr_binOp(EXPKD_MINUS, $1, $3);	}
 	| expr '*' expr	{ $$ = expr_binOp(EXPKD_TIME, $1, $3);	}
@@ -154,7 +156,7 @@ expr
 xcst
 	: CNUM { $$ = $1; }
 	| IDENT {
-			Tvar *v;
+			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				$$ = v->val;
 			else
@@ -195,7 +197,7 @@ pt3
 		}
 	| pt ':' xcst {
 			if ($3 <= 0)
-				yyerror("$3 is negative\n", $3);
+				yyerror("$3 can't be negative or null\n", $3);
 			else {
 				$$.xy = $1;
 				$$.z = $3;
@@ -223,25 +225,61 @@ pt_arrow_list
 	| pt { $$ = pts_new_pt($1); }
 ;
 
-var_list
-	: var_list IDENT
-	| IDENT
-;
-
 range
-	: '[' xcst ',' xcst ']'
-	| '[' xcst ',' xcst ',' xcst ']'
+	: '[' xcst ':' xcst ']' {
+			if ($2 < $4)
+				yyerror("Error: %d < %d\n", $2, $4);
+			else {
+				($$.xy).x = $2;
+				($$.xy).y = $4;
+				$$.z = 1;
+			}
+		}
+	| '[' xcst ':' xcst ':' xcst ']' {
+			if ($2 < $4 || $6 < 1)
+				yyerror("Error: %d < %d or $6 < 1\n", $2, $4, $6);
+			else {
+				($$.xy).x = $2;
+				($$.xy).y = $4;
+				$$.z = $6;
+			}
+		}
+	| '[' xcst ':' xcst '[' {
+			if ($2 <= $4)
+				yyerror("Error: %d <= %d\n", $2, $4);
+			else {
+				($$.xy).x = $2;
+				($$.xy).y = $4 - 1;
+				$$.z = 1;
+			}
+		}
+	| '[' xcst ':' xcst ':' xcst '[' {
+			if ($2 <= $4 || $6 < 1)
+				yyerror("Error: %d <= %d or $6 < 1\n", $2, $4, $6);
+			else {
+				($$.xy).x = $2;
+				($$.xy).y = $4 - 1;
+				$$.z = $6;
+			}
+		}
 ;
 
-range_list
-	: range_list range
-	| range
+vars_in_ranges
+	: IDENT IN range {
+		vars_chgOrAddEated(gl_pdt->vars, $1, ($3.xy).x);
+		$$ = pt3s_new_p2z($3.xy, $3.z);
+	}
+	| IDENT vars_in_ranges range {
+		vars_chgOrAddEated(gl_pdt->vars, $1, ($3.xy).x);
+		pt3s_app_pt3($2, $3);
+		$$ = $2;
+	}
 ;
 
-wall
-	: WALL
-	| UNWALL
-	| TOGGLE
+dopt
+	: WALL		{ $$ = LG_DrawWall;		}
+	| UNWALL	{ $$ = LG_DrawUnwall;	}
+	| TOGGLE	{ $$ = LG_DrawToggle;	}
 ;
 
 dest_list
@@ -252,4 +290,4 @@ dest_list
 %%
 
 #include "labgen.yy.c"
-#include "my_labgen.c"
+#include "top.c"
