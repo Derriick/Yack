@@ -1,7 +1,9 @@
 APP	= labgen
-SRC	= my_labgen.c
 AUGE = auge/
 
+YSRC = my_labgen.c
+CSRC = expr.c
+COBJ = $(CSRC:.c=.o)
 AUGE_SRC = $(wildcard $(AUGE)*.c)
 AUGE_OBJ = $(AUGE_SRC:.c=.o)
 
@@ -14,7 +16,7 @@ FFLAGS	=
 
 all: $(APP)
 
-%.c: %.y $(SRC)
+%.c: %.y $(YSRC)
 	$(YACC) $(YFLAGS) -o $@ $<
 
 %.yy.c: %.l
@@ -23,10 +25,13 @@ all: $(APP)
 %.o: %.c %.yy.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(AUGE)%.o: $(AUGE)%.c $(AUGE)%.h
+%.o: %.c %.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(APP): $(APP).o $(AUGE_OBJ)
+$(AUGE)%.o: $(AUGE)%.c $(AUGE)%.h
+	$(CC) -o $@ -c $<
+
+$(APP): $(APP).o $(COBJ) $(AUGE_OBJ)
 	$(CC) -o $@ $^
 
 clean:

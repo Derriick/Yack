@@ -1,8 +1,10 @@
 #include <stdarg.h>
+
+/*====== TEMPORAIRE ======*/
 #include <stdbool.h>
 #include <assert.h>
-
 #define UNUSED(x) (void)(x)
+/*========================*/
 
 void lg_sem0(Tlds*ds, const Tpdt*pdt)
 {

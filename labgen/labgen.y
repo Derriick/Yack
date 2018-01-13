@@ -6,7 +6,7 @@
 
 	#include "auge/top.h"
 	#include "auge/lds.h"
-	#include "auge/vars.h"
+	#include "auge/expr.h"
 	#include "auge/pdt.h"
 
 	int	yylex();
@@ -24,18 +24,20 @@
 %union {
 	int integer;
 	char* string;
+	Texpr* type_expr;
+	Tpoint type_pt;
 	Tpoints* type_pt_list;
-	Tpoint type_point;
-	Tpoint3s* type_ptri_list;
-	Tpoint3s type_ptri;
+	Tpoint3 type_pt3;
+	Tpoint3s* type_pt3_list;
 }
 
-%type <integer> CNUM xcst expr
+%type <integer> CNUM xcst
 %type <string> IDENT
-%type <type_pt_list> pt_list
-%type <type_point> pt
-%type <type_ptri_list> ptri_list 
-%type <type_ptri> ptri
+%type <type_expr> expr
+%type <type_pt> pt
+%type <type_pt_list> pt_list pt_arrow_list
+%type <type_pt3> pt3
+%type <type_pt3_list> pt3_list 
 
 %left '+' '-'
 %left '*' '/'
@@ -86,7 +88,7 @@ instruction
 	| wall
 	| wall PTA pt_list
 	| wall PTD pt
-	| wall PTD pt ptri_list
+	| wall PTD pt pt3_list
 	| wall R pt pt
 	| wall R F pt pt
 	| wall FOR var_list IN range_list '(' expr ',' expr ')'
@@ -95,21 +97,27 @@ instruction
 ;
 
 expr
-	: CNUM			{ $$ = $1;		}
-	| IDENT			{ Tvar *v; $$ = (v = vars_get(gl_pdt->vars, $1)) ? v->val : $1; }
-	| expr '+' expr	{ $$ = $1 + $3;	}
-	| expr '-' expr	{ $$ = $1 - $3;	}
-	| expr '*' expr	{ $$ = $1 * $3;	}
-	| expr '/' expr	{ $$ = $1 / $3;	}
-	| expr '%' expr	{ $$ = $1 % $3;	}
-	| '+' expr		{ $$ = $2;		}
-	| '-' expr		{ $$ = - $2;	}
-	| '(' expr ')'	{ $$ = ( $2 );	}
+	: CNUM			{ $$ = expr_cst($1);					}
+	| IDENT			{ $$ = expr_varCloned($1);				}
+	| expr '+' expr	{ $$ = expr_binOp(EXPKD_PLUS, $1, $3);	}
+	| expr '-' expr	{ $$ = expr_binOp(EXPKD_MINUS, $1, $3);	}
+	| expr '*' expr	{ $$ = expr_binOp(EXPKD_TIME, $1, $3);	}
+	| expr '/' expr	{ $$ = expr_binOp(EXPKD_DIV, $1, $3);	}
+	| expr '%' expr	{ $$ = expr_binOp(EXPKD_MOD, $1, $3);	}
+	| '+' expr		{ $$ = expr_uniOp(EXPKD_NONE, $2);		}
+	| '-' expr		{ $$ = expr_uniOp(EXPKD_NEG, $2);		}
+	| '(' expr ')'	{ $$ = expr_uniOp(EXPKD_NONE, $2);		}
 ;
 
 xcst
-	: CNUM			{ $$ = $1;		}
-	| IDENT			{ Tvar *v; if ((v = vars_get(gl_pdt->vars, $1))) $$ = v->val; else yyerror("%s undefined\n", $1); }
+	: CNUM	{ $$ = $1;	}
+	| IDENT	{
+		Tvar *v;
+		if ((v = vars_get(gl_pdt->vars, $1)))
+			$$ = v->val;
+		else
+			yyerror("%s undefined\n", $1);
+	}
 	| xcst '+' xcst	{ $$ = $1 + $3;	}
 	| xcst '-' xcst	{ $$ = $1 - $3;	}
 	| xcst '*' xcst	{ $$ = $1 * $3;	}
@@ -117,33 +125,60 @@ xcst
 	| xcst '%' xcst	{ $$ = $1 % $3;	}
 	| '+' xcst		{ $$ = $2;		}
 	| '-' xcst		{ $$ = - $2;	}
-	| '(' xcst ')'	{ $$ = ( $2 );	}
+	| '(' xcst ')'	{ $$ = $2;		}
 ;
 
 pt
-	: '(' xcst ',' xcst ')' { if (lds_check_xy(gl_lds,$2,$4)) yyerror("[%s:%s] outside of the labyrinth\n",$2,$4); $$.x = $2; $$.y = $4; }
+	: '(' xcst ',' xcst ')'	{
+		if (lds_check_xy(gl_lds,$2,$4))
+			yyerror("[%s:%s] outside of the labyrinth\n",$2,$4);
+		else
+			$$.x = $2; $$.y = $4;
+	}
 ;
 
 pt_list
-	: pt_list pt 	{ pts_app_pt($1,$2); $$=$1;}
-	| pt 			{ $$ = pts_new_pt($1);}
+	: pt_list pt {
+		pts_app_pt($1, $2);
+		$$ = $1;
+	}
+	| pt { $$ = pts_new_pt($1); }
 ;
 
 
-ptri
-	: pt 			{ Tpoint3 pt3; pt3.Tpoint = $1; pt3.z = 1; $$=pt3; }
-	| pt ':' xcst	{ if ($3 <= 0) yyerror("[%s:%s]:$3 error \n",$1.x, $1.y, $3); Tpoint3 pt3; pt3.Tpoint = $1; pt3.z = $3; $$=pt3; }
-	| pt ':' '*'	{ Tpoint3 pt3; pt3.Tpoint = $1; pt3.z = 0; $$=pt3; }
+pt3
+	: pt {
+		$$.xy = $1;
+		$$.z = 1;
+	}
+	| pt ':' xcst {
+		if ($3 <= 0)
+			yyerror("$3 is negative\n", $3);
+		else {
+			$$.xy = $1;
+			$$.z = $3;
+		}
+	}
+	| pt ':' '*' {
+		$$.xy = $1;
+		$$.z = 0;
+	}
 ;
 
-ptri_list
-	: ptri_list ptri 	{ pt3s_app_pt3 ($1, $2[0]) }
-	| ptri
+pt3_list
+	: pt3_list pt3 {
+		pt3s_app_pt3($1, $2);
+		$$ = $1;
+	}
+	| pt3 { $$ = pt3s_new_p2z($1.xy, $1.z); }
 ;
 
 pt_arrow_list
-	: pt_arrow_list ARROW pt
-	| pt
+	: pt_arrow_list ARROW pt {
+		pts_app_pt($1, $3);
+		$$ = $1;
+	}
+	| pt { $$ = pts_new_pt($1); }
 ;
 
 var_list
