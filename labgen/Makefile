@@ -23,10 +23,10 @@ all: $(APP)
 	$(FLEX) $(FFLAGS) -o $@ $<
 
 %.o: %.c %.yy.c
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) -o $@ -c $<
 
-# %.o: %.c %.h
-# 	$(CC) $(CFLAGS) -o $@ -c $<
+%.o: %.c %.h
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(AUGE)%.o: $(AUGE)%.c $(AUGE)%.h
 	$(CC) -o $@ -c $<

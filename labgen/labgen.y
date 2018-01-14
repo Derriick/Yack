@@ -57,47 +57,48 @@
 
 labyrinth
 	: suite_declaration size_initialization suite_instruction
+	| size_initialization suite_instruction
 ;
 
 suite_declaration
-	: suite_declaration declaration ';'
-	| declaration ';'
+	: suite_declaration declaration
+	| declaration
 ;
 
 declaration
 	: ';'
-	| IDENT '=' xcst {
+	| IDENT '=' xcst ';' {
 			vars_chgOrAddEated(gl_pdt->vars, $1, $3);
 		}
-	| IDENT '+' '=' xcst {
+	| IDENT '+' '=' xcst ';' {
 			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val += $4;
 			else
 				yyerror("%s undefined\n", $1);
 		}
-	| IDENT '-' '=' xcst {
+	| IDENT '-' '=' xcst ';' {
 			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val -= $4;
 			else
 				yyerror("%s undefined\n", $1);
 		}
-	| IDENT '*' '=' xcst {
+	| IDENT '*' '=' xcst ';' {
 			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val *= $4;
 			else
 				yyerror("%s undefined\n", $1);
 		}
-	| IDENT '/' '=' xcst {
+	| IDENT '/' '=' xcst ';' {
 			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val /= $4;
 			else
 				yyerror("%s undefined\n", $1);
 		}
-	| IDENT '%' '=' xcst {
+	| IDENT '%' '=' xcst ';' {
 			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val %= $4;
@@ -108,31 +109,27 @@ declaration
 size_initialization
 	: SIZE xcst ';' {
 			if ($2 < 0 || $2 >= LDS_SIZE)
-				yyerror("%d: invalid Lab Size");
+				yyerror("%dx%d: invalid Lab Size", $2, $2);
 			else
 				lds_size_set(gl_lds, $2, $2);
 		}
 	| SIZE xcst ',' xcst ';' {
 			if ($2 < 0 || $2 >= LDS_SIZE || $4 < 0 || $4 >= LDS_SIZE)
-				yyerror("%dx%d: invalid Lab Size");
+				yyerror("%dx%d: invalid Lab Size", $2, $4);
 			else
 				lds_size_set(gl_lds, $2, $4);
 		}
 ;
 
 suite_instruction
-	: suite_instruction show
-	| show
-	| suite_instruction instruction ';'
-	| instruction ';'
+	: suite_instruction instruction
+	| instruction
 ;
 
-show
-	: SHOW { lds_dump(gl_lds, stdout); }
-
 instruction
-	: ';'
-	| IN pt {
+	: declaration
+	| SHOW { lds_dump(gl_lds, stdout); }
+	| IN pt ';' {
 			if (lds_checkborder_pt(gl_lds, $2))
 				yyerror("Error: (%d,%d) must be on the border to be an input", $2.x, $2.y);
 			else {
@@ -140,7 +137,7 @@ instruction
 				gl_lds->in = $2;
 			}
 		}
-	| OUT pt_list {
+	| OUT pt_list ';' {
 			for (int i = 0; i < $2->nb; ++i) {
 				Tpoint pt = $2->t[i];
 				if (lds_checkborder_pt(gl_lds, pt))
@@ -149,18 +146,18 @@ instruction
 					gl_lds->squares[pt.x][pt.y].kind = LDS_OUT;
 			}
 		}
-	| dopt {
+	| dopt ';' {
 		Tpoint size = (Tpoint){gl_lds->dx, gl_lds->dy};
 		for (int i = 0; i < size.x; ++i)
 			for (int j = 0; j < size.y; ++j)
 				lds_draw_xy(gl_lds, $1, i, j);
 	}
-	| dopt PTA pt_list {
+	| dopt PTA pt_list ';' {
 			lds_draw_pts(gl_lds, $1, $3);
 			pts_free($3);
 		}
-	| dopt PTD pt
-	| dopt PTD pt pt3_list {
+	| dopt PTD pt ';'
+	| dopt PTD pt pt3_list ';' {
 		// @TODO
 		pt3s_free($4);
 	}
@@ -178,7 +175,7 @@ instruction
 				lds_draw_xy(gl_lds, $1, rectMax.x, i);
 			}
 		}
-	| dopt R F pt pt {
+	| dopt R F pt pt ';' {
 			Tpoint rectMin = (Tpoint){MIN($4.x, $5.x), MIN($4.y, $5.y)};
 			Tpoint rectMax = (Tpoint){MAX($4.x, $5.x), MAX($4.y, $5.y)};
 
@@ -186,13 +183,13 @@ instruction
 				for (int j = rectMin.y; j < rectMax.y; ++j)
 					lds_draw_xy(gl_lds, $1, i, j);
 		}
-	| dopt FOR vars_in_ranges '(' expr ',' expr ')' {
+	| dopt FOR vars_in_ranges '(' expr ',' expr ')' ';' {
 
 			/**************************************/
 			/*********        TODO        *********/
 			/**************************************/
 		}
-	| WH pt_arrow_list {
+	| WH pt_arrow_list ';' {
 
 			// @TODO VERIFIER S'IL Y A DEJA QQCH SUR LA CASE
 			//       ET QUE LES POINTS SONT DIFFERENTS
@@ -202,7 +199,7 @@ instruction
 			
 			pts_free($2);
 		}
-	| MD pt dest_list {
+	| MD pt dest_list ';' {
 
 			// @TODO VERIFIER S'IL Y A DEJA QQCH SUR LA CASE
 			//       ET QUE LES POINTS SONT DIFFERENTS
