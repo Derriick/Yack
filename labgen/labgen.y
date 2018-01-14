@@ -1,6 +1,7 @@
 %{
 	#include <stdio.h>
 	#include <stdlib.h>
+	#include <string.h>
 
 	//typedef const char* Cstr;
 
@@ -37,14 +38,14 @@
 }
 
 %type <integer> CNUM xcst
-%type <string> IDENT
+%type <string> IDENT DIR
 %type <type_expr> expr
 %type <type_pt> pt
 %type <type_pt_list> pt_list pt_arrow_list
 %type <type_pt3> pt3 range
 %type <type_pt3_list> pt3_list vars_in_ranges dest_list
 %type <type_dopt> dopt
-%type <type_dir> DIR
+%type <type_dir> dir
 
 %left '+' '-'
 %left '*' '/'
@@ -330,10 +331,32 @@ dopt
 	| UNWALL	{ $$ = LG_DrawUnwall;	}
 	| TOGGLE	{ $$ = LG_DrawToggle;	}
 ;
+dir
+	: DIR {
+			if (!strcmp($1, "N"))
+				$$ = LG_WrNN;
+			else if (!strcmp($1, "NE"))
+				$$ = LG_WrNE;
+			else if (!strcmp($1, "E"))
+				$$ = LG_WrEE;
+			else if (!strcmp($1, "SE"))
+				$$ = LG_WrSE;
+			else if (!strcmp($1, "S"))
+				$$ = LG_WrSS;
+			else if (!strcmp($1, "SW"))
+				$$ = LG_WrSW;
+			else if (!strcmp($1, "W"))
+				$$ = LG_WrWW;
+			else if (!strcmp($1, "NW"))
+				$$ = LG_WrNW;
+			else
+				$$ = LG_WrUU;
+		}
+;
 
 dest_list
-	: dest_list DIR pt { pt3s_app_p2z(($$ = $1), $3, $2); }
-	| DIR pt { $$ = pt3s_new_p2z($2, $1); }
+	: dest_list dir pt { pt3s_app_p2z(($$ = $1), $3, $2); }
+	| dir pt { $$ = pt3s_new_p2z($2, $1); }
 ;
 
 %%
