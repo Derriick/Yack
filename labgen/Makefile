@@ -35,4 +35,4 @@ $(APP): $(APP).o $(COBJ) $(AUGE_OBJ)
 	$(CC) -o $@ $^
 
 clean:
-	rm -rf $(APP) $(APP).c *.yy.c *.o src/*.o $(AUGE)*.o *.output labres.y labres.l 2>/dev/null
+	rm -rf $(APP) $(APP).c *.yy.c *.o src/*.o $(AUGE)*.o *.output labres* 2>/dev/null

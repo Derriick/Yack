@@ -136,9 +136,9 @@ int write_template(char* filename, FILE* output_stream)
 
 int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 {
-	char* lex_temp = strdup("labres/lex_template");
-	char* yacc_temp1 = strdup("labres/yacc_template1");
-	char* yacc_temp2 = strdup("labres/yacc_template2");
+	char* lex_temp = strdup("src/lex_template");
+	char* yacc_temp1 = strdup("src/yacc_template1");
+	char* yacc_temp2 = strdup("src/yacc_template2");
 
 	if (write_template(lex_temp, lstream))
 		return 1;
@@ -146,9 +146,48 @@ int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 	if (write_template(yacc_temp1, ystream))
 		return 1;
 
-	/****************************/
-	/*   ECRIRE TOUT LE LABRES  */
-	/****************************/
+	Tpoint pt_in = ds->in;
+
+	fprintf(ystream, "\n%%start cell_%d_%d\n\n%%%%\n\n", pt_in.x, pt_in.y);
+
+	Tsquare sq;
+	Tsquare sq2;
+	char* card[3][3] = {{"NW", "N", "NE"},
+					   { "W",  "",  "E" },
+					   {"SW", "S", "SE"}};
+
+	for (int i = 0; i < ds->dx; ++i)
+		for (int j = 0; j < ds->dy; ++j) {
+			char sep = ':';
+
+			sq = ds->squares[i][j];
+
+			fprintf(ystream, "cell_%d_%d\n", i, j);
+
+			if (sq.kind != LDS_OUT)
+				for (int i2 = 0; i2 <= 2; ++i2)
+					for (int j2 = 0; j2 <= 2; ++j2) {
+						int x = i + i2 - 1;
+						int y = j + j2 - 2;
+
+						if ((i2 != 1 || j2 != 1) &&
+							x >= 0 && x < ds->dx
+							&& y >= 0 && y < ds->dy)
+						{
+							sq2 = ds->squares[x][y];
+
+							if (sq2.kind != LDS_WALL) {
+								fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[i2][j2], x, y);
+								sep = '|';
+							}
+						}
+
+					}
+			else
+				fprintf(ystream, "\t: { return 0; }\n");
+
+			fprintf(ystream, ";\n\n");
+		}
 
 	if (write_template(yacc_temp2, ystream))
 		return 1;
