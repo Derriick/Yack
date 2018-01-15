@@ -56,6 +56,10 @@
 
 %%
 
+// RS-5 Tant que la taille du labyrinthe n’est pas définie, il est interdit:
+// 		• De définir l’entrée ou des sorties.
+// 		• D’utiliser des instructions de tracé.
+// 		• De définir des portes magiques ou des trous de vers.
 labyrinth
 	: suite_declaration size_initialization suite_instruction
 	| size_initialization suite_instruction
@@ -132,12 +136,20 @@ suite_instruction
 	| instruction
 ;
 
+// RS-8 Pour les tracés de murs (WALL, UNWALL et TOGGLE)
+// 		• les points définis par les instructions PTA, PTD et R doivent
+// 		être dans le labyrinthe.
+// 		• les points définis par les instructions FOR en dehors du
+// 		labyrinthe sont ignorés.
+// 		• Si une instruction génère plusieurs occurrences du même
+// 		point, celui-ci n’est considéré qu’une seule fois.
+// 		TOGGLE PTD (0,0) (1,0) (-1,0); ⇐⇒ TOGGLE PTD (0,0) (1,0);
 instruction
 	: declaration
 	| SHOW { lds_dump(gl_lds, stdout); }
 	| IN pt ';' {
 			if (lds_checkborder_pt(gl_lds, $2))
-				yyerror("(%d,%d) must be on the border to be an input", $2.x, $2.y);
+				yyerror("(%d,%d) must be on the border to be an input (RS-4)", $2.x, $2.y);
 			else {
 				gl_lds->squares[$2.x][$2.y].kind = LDS_IN;
 				gl_lds->in = $2;
@@ -147,7 +159,7 @@ instruction
 			for (int i = 0; i < $2->nb; ++i) {
 				Tpoint pt = $2->t[i];
 				if (lds_checkborder_pt(gl_lds, pt))
-					yyerror("(%d,%d) must be on the border to be an output",  pt.x, pt.y);
+					yyerror("(%d,%d) must be on the border to be an output (RS-4)",  pt.x, pt.y);
 				else
 					gl_lds->squares[pt.x][pt.y].kind = LDS_OUT;
 			}
@@ -164,9 +176,9 @@ instruction
 		}
 	| dopt PTD pt ';'
 	| dopt PTD pt vectn_list ';' {
-		// @TODO
-		pt3s_free($4);
-	}
+			// @TODO
+			pt3s_free($4);
+		}
 	| dopt R pt pt {
 			Tpoint rectMin = (Tpoint){MIN($3.x, $4.x), MIN($3.y, $4.y)};
 			Tpoint rectMax = (Tpoint){MAX($3.x, $4.x), MAX($3.y, $4.y)};
@@ -200,23 +212,39 @@ instruction
 			// @TODO VERIFIER S'IL Y A DEJA QQCH SUR LA CASE
 			//       ET QUE LES POINTS SONT DIFFERENTS
 
-			for (int i = 0; i < $2->nb - 1; ++i)
-				pdt_wormhole_add(gl_pdt, $2->t[i], $2->t[i + 1]);
+			for (int i = 0; i < $2->nb - 1; ++i) {
+				Tpoint pt1 = $2->t[i];
+				Tpoint pt2 = $2->t[i + 1];
+
+				if (gl_lds->squares[pt1.x, pt1.y]->kind == LDS_WALL) {
+					printf("warning: (%d, %d) was a WALL (deleted)\n", pt1.x, pt1.y);
+					gl_lds->squares[pt1.x, pt1.y]->kind = LDS_FREE;
+				}
+				if (gl_lds->squares[pt2.x, pt2.y]->kind == LDS_WALL) {
+					printf("warning: (%d, %d) was a WALL (deleted)\n", pt2.x, pt2.y);
+					gl_lds->squares[pt2.x, pt2.y]->kind = LDS_FREE;
+				}
+
+				pdt_wormhole_add(gl_pdt, pt1, pt2);
+			}
 			
 			pts_free($2);
 		}
 	| MD pt dest_list ';' {
 			// @TODO VERIFIER S'IL Y A DEJA QQCH SUR LA CASE
 			//       ET QUE LES POINTS SONT DIFFERENTS
-
 			Tsqmd* sqmd = pdt_magicdoor_getcreate(gl_pdt, gl_lds, $2);
 
 			for (int i = 0; i < $3->nb; ++i) {
-				Tpoint3 pt3 = $3->t[i];
+				Tpoint3 pt_dir = $3->t[i];
 
-				sqmd = lds_sqmd_update(sqmd, pt3.z, pt3.xy);
+				if (gl_lds->squares[pt_dir.xy.x, pt_dir.xy.y]->kind == LDS_WALL) {
+					printf("warning: (%d, %d) was a WALL (deleted)\n", pt_dir.xy.x, pt_dir.xy.y);
+					gl_lds->squares[pt_dir.xy.x, pt_dir.xy.y]->kind = LDS_FREE;
+				}
+				
+				lds_sqmd_update(sqmd, (Twr)pt_dir.z, pt_dir.xy);
 			}
-
 			pt3s_free($3);
 		}
 ;
@@ -253,6 +281,9 @@ xcst
 	| '(' xcst ')'	{ $$ = $2;		}
 ;
 
+// RS-6 L’entrée et la sortie des trous de vers doivent être dans le labyrinthe.
+// RS-7 L’entrée et les sorties des portes magiques doivent être dans le
+// 		labyrinthe.
 pt
 	: '(' xcst ',' xcst ')' {
 			if (lds_check_xy(gl_lds, $2, $4))
