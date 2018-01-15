@@ -7,6 +7,7 @@
 [0-9]+		{ yylval.integer = atoi(yytext); return CNUM; }
 "SIZE"		{ return SIZE;	}
 "IN"		{ return IN;	}
+"OUT"		{ return OUT;	}
 "SHOW"		{ return SHOW;	}
 "WALL"		{ return WALL;	}
 "UNWALL"	{ return UNWALL;}
@@ -18,7 +19,7 @@
 "FOR"		{ return FOR;	}
 "WH"		{ return WH;	}
 "MD"		{ return MD;	}
-"NE" | "NW" | "SE" | "SW" | "N" | "S" | "E" | "W" { yylval.string = yytext; return DIR; }
+"NE"|"NW"|"SE"|"SW"|"N"|"S"|"E"|"W" { yylval.string = strdup(yytext); return DIR; }
 -+>						{ return ARROW; }
 [a-zA-Z][a-zA-Z0-9]*	{ yylval.string = strdup(yytext); return IDENT; }
 [ \t\n]					;

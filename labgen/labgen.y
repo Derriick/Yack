@@ -40,10 +40,10 @@
 %type <integer> CNUM xcst
 %type <string> IDENT DIR
 %type <type_expr> expr
-%type <type_pt> pt
+%type <type_pt> pt vect
 %type <type_pt_list> pt_list pt_arrow_list
-%type <type_pt3> pt3 range
-%type <type_pt3_list> pt3_list vars_in_ranges dest_list
+%type <type_pt3> vectn range
+%type <type_pt3_list> vectn_list vars_in_ranges dest_list
 %type <type_dopt> dopt
 %type <type_dir> dir
 
@@ -76,49 +76,54 @@ declaration
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val += $4;
 			else
-				yyerror("%s undefined\n", $1);
+				yyerror("%s undefined", $1);
 		}
 	| IDENT '-' '=' xcst ';' {
 			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val -= $4;
 			else
-				yyerror("%s undefined\n", $1);
+				yyerror("%s undefined", $1);
 		}
 	| IDENT '*' '=' xcst ';' {
 			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val *= $4;
 			else
-				yyerror("%s undefined\n", $1);
+				yyerror("%s undefined", $1);
 		}
 	| IDENT '/' '=' xcst ';' {
 			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val /= $4;
 			else
-				yyerror("%s undefined\n", $1);
+				yyerror("%s undefined", $1);
 		}
 	| IDENT '%' '=' xcst ';' {
 			Tvar *v = NULL;
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				v->val %= $4;
 			else
-				yyerror("%s undefined\n", $1);
+				yyerror("%s undefined", $1);
 		}
 
 size_initialization
 	: SIZE xcst ';' {
-			if ($2 < 0 || $2 >= LDS_SIZE)
-				yyerror("%dx%d: invalid Lab Size", $2, $2);
+			int d = $2 + 1;
+
+			if (d <= 0 || d > LDS_SIZE)
+				yyerror("%dx%d: invalid size", d, d);
 			else
-				lds_size_set(gl_lds, $2, $2);
+				lds_size_set(gl_lds, d, d);
 		}
 	| SIZE xcst ',' xcst ';' {
-			if ($2 < 0 || $2 >= LDS_SIZE || $4 < 0 || $4 >= LDS_SIZE)
-				yyerror("%dx%d: invalid Lab Size", $2, $4);
+			int dx = $2 + 1;
+			int dy = $4 + 1;
+
+			if (dx <= 0 || dx > LDS_SIZE || dy <= 0 || dy > LDS_SIZE)
+				yyerror("%dx%d: invalid size", $2, $4);
 			else
-				lds_size_set(gl_lds, $2, $4);
+				lds_size_set(gl_lds, dx, dy);
 		}
 ;
 
@@ -132,7 +137,7 @@ instruction
 	| SHOW { lds_dump(gl_lds, stdout); }
 	| IN pt ';' {
 			if (lds_checkborder_pt(gl_lds, $2))
-				yyerror("Error: (%d,%d) must be on the border to be an input", $2.x, $2.y);
+				yyerror("(%d,%d) must be on the border to be an input", $2.x, $2.y);
 			else {
 				gl_lds->squares[$2.x][$2.y].kind = LDS_IN;
 				gl_lds->in = $2;
@@ -142,7 +147,7 @@ instruction
 			for (int i = 0; i < $2->nb; ++i) {
 				Tpoint pt = $2->t[i];
 				if (lds_checkborder_pt(gl_lds, pt))
-					yyerror("Error: (%d,%d) must be on the border to be an output",  pt.x, pt.y);
+					yyerror("(%d,%d) must be on the border to be an output",  pt.x, pt.y);
 				else
 					gl_lds->squares[pt.x][pt.y].kind = LDS_OUT;
 			}
@@ -158,7 +163,7 @@ instruction
 			pts_free($3);
 		}
 	| dopt PTD pt ';'
-	| dopt PTD pt pt3_list ';' {
+	| dopt PTD pt vectn_list ';' {
 		// @TODO
 		pt3s_free($4);
 	}
@@ -166,12 +171,12 @@ instruction
 			Tpoint rectMin = (Tpoint){MIN($3.x, $4.x), MIN($3.y, $4.y)};
 			Tpoint rectMax = (Tpoint){MAX($3.x, $4.x), MAX($3.y, $4.y)};
 
-			for (int i = rectMin.x; i < rectMax.x; ++i) {
+			for (int i = rectMin.x; i <= rectMax.x; ++i) {
 				lds_draw_xy(gl_lds, $1, i, rectMin.y);
 				lds_draw_xy(gl_lds, $1, i, rectMax.y);
 			}
 
-			for (int i = rectMin.y + 1; i < rectMax.y - 1; ++i) {
+			for (int i = rectMin.y + 1 ; i < rectMax.y; ++i) {
 				lds_draw_xy(gl_lds, $1, rectMin.x, i);
 				lds_draw_xy(gl_lds, $1, rectMax.x, i);
 			}
@@ -201,7 +206,6 @@ instruction
 			pts_free($2);
 		}
 	| MD pt dest_list ';' {
-
 			// @TODO VERIFIER S'IL Y A DEJA QQCH SUR LA CASE
 			//       ET QUE LES POINTS SONT DIFFERENTS
 
@@ -237,7 +241,7 @@ xcst
 			if ((v = vars_get(gl_pdt->vars, $1)))
 				$$ = v->val;
 			else
-				yyerror("%s undefined\n", $1);
+				yyerror("%s undefined", $1);
 		}
 	| xcst '+' xcst	{ $$ = $1 + $3;	}
 	| xcst '-' xcst	{ $$ = $1 - $3;	}
@@ -252,7 +256,7 @@ xcst
 pt
 	: '(' xcst ',' xcst ')' {
 			if (lds_check_xy(gl_lds, $2, $4))
-				yyerror("[%s:%s] outside of the labyrinth\n", $2, $4);
+				yyerror("(%d:%d) is outside of the labyrinth", $2, $4);
 			else
 				$$ = (Tpoint){$2, $4};
 		}
@@ -263,23 +267,6 @@ pt_list
 	| pt { $$ = pts_new_pt($1); }
 ;
 
-
-pt3
-	: pt { $$ = (Tpoint3){$1, 1}; }
-	| pt ':' xcst {
-			if ($3 <= 0)
-				yyerror("$3 can't be negative or null\n", $3);
-			else
-				$$ = (Tpoint3){$1, $3};
-		}
-	| pt ':' '*' { $$ = (Tpoint3){$1, 0}; }
-;
-
-pt3_list
-	: pt3_list pt3 { pt3s_app_pt3(($$ = $1), $2); }
-	| pt3 { $$ = pt3s_new_p2z($1.xy, $1.z); }
-;
-
 pt_arrow_list
 	: pt_arrow_list ARROW pt { pts_app_pt(($$ = $1), $3); }
 	| pt ARROW pt {
@@ -288,28 +275,48 @@ pt_arrow_list
 		}
 ;
 
+vect
+	: '(' xcst ',' xcst ')' { $$ = (Tpoint){$2, $4}; }
+;
+
+vectn
+	: vect { $$ = (Tpoint3){$1, 1}; }
+	| vect ':' xcst {
+			if ($3 <= 0)
+				yyerror("%d can't be negative or null", $3);
+			else
+				$$ = (Tpoint3){$1, $3};
+		}
+	| vect ':' '*' { $$ = (Tpoint3){$1, 0}; }
+;
+
+vectn_list
+	: vectn_list vectn { pt3s_app_pt3(($$ = $1), $2); }
+	| vectn { $$ = pt3s_new_p2z($1.xy, $1.z); }
+;
+
 range
 	: '[' xcst ':' xcst ']' {
 			if ($2 < $4)
-				yyerror("Error: %d < %d\n", $2, $4);
+				yyerror("Error: %d < %d", $2, $4);
 			else 
 				$$ = (Tpoint3){(Tpoint){$2, $4}, 1};
 		}
 	| '[' xcst ':' xcst ':' xcst ']' {
 			if ($2 < $4 || $6 < 1)
-				yyerror("Error: %d < %d or $6 < 1\n", $2, $4, $6);
+				yyerror("Error: %d < %d or %d < 1", $2, $4, $6);
 			else
 				$$ = (Tpoint3){(Tpoint){$2, $4}, $6};
 		}
 	| '[' xcst ':' xcst '[' {
 			if ($2 <= $4)
-				yyerror("Error: %d <= %d\n", $2, $4);
+				yyerror("Error: %d <= %d", $2, $4);
 			else
 				$$ = (Tpoint3){(Tpoint){$2, $4 - 1}, 1};
 		}
 	| '[' xcst ':' xcst ':' xcst '[' {
 			if ($2 <= $4 || $6 < 1)
-				yyerror("Error: %d <= %d or $6 < 1\n", $2, $4, $6);
+				yyerror("Error: %d <= %d or %d < 1", $2, $4, $6);
 			else
 				$$ = (Tpoint3){(Tpoint){$2, $4 - 1}, $6};
 		}
@@ -317,13 +324,13 @@ range
 
 vars_in_ranges
 	: IDENT IN range {
-		vars_chgOrAddEated(gl_pdt->vars, $1, ($3.xy).x);
-		$$ = pt3s_new_p2z($3.xy, $3.z);
-	}
+			vars_chgOrAddEated(gl_pdt->vars, $1, ($3.xy).x);
+			$$ = pt3s_new_p2z($3.xy, $3.z);
+		}
 	| IDENT vars_in_ranges range {
-		vars_chgOrAddEated(gl_pdt->vars, $1, ($3.xy).x);
-		pt3s_app_pt3(($$ = $2), $3);
-	}
+			vars_chgOrAddEated(gl_pdt->vars, $1, ($3.xy).x);
+			pt3s_app_pt3(($$ = $2), $3);
+		}
 ;
 
 dopt
@@ -331,6 +338,7 @@ dopt
 	| UNWALL	{ $$ = LG_DrawUnwall;	}
 	| TOGGLE	{ $$ = LG_DrawToggle;	}
 ;
+
 dir
 	: DIR {
 			if (!strcmp($1, "N"))
