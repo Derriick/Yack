@@ -144,6 +144,10 @@ suite_instruction
 // 		• Si une instruction génère plusieurs occurrences du même
 // 		point, celui-ci n’est considéré qu’une seule fois.
 // 		TOGGLE PTD (0,0) (1,0) (-1,0); ⇐⇒ TOGGLE PTD (0,0) (1,0);
+// RS-9 Une case ne peut pas être
+// 		• l’entrée d’un trou de vers et d’une porte magiques,
+// 		• l’entrée de 2 trous de vers,
+// 		• l’entrée de 2 portes magiques.
 instruction
 	: declaration
 	| SHOW { lds_dump(gl_lds, stdout); }
@@ -174,9 +178,36 @@ instruction
 			lds_draw_pts(gl_lds, $1, $3);
 			pts_free($3);
 		}
-	| dopt PTD pt ';'
+	| dopt PTD pt ';' {
+			lds_draw_pt(gl_lds, $1, $3);
+		}
 	| dopt PTD pt vectn_list ';' {
-			// @TODO
+			Tpoint pt = $3;
+			lds_draw_pt(gl_lds, $1, pt);
+
+			for (int i = 0; i < $4->nb; ++i) {
+				Tpoint3 pt3 = $4->t[i];
+
+				if (pt3.z)
+					for (int j = 0; j < pt3.z; ++j) {
+						pt.x += pt3.xy.x;
+						pt.y += pt3.xy.y;
+
+						if (!lds_check_pt(gl_lds, pt))
+							lds_draw_pt(gl_lds, $1, pt);
+					}
+				else {
+					while (lds_check_pt(gl_lds, pt)) {
+						pt.x += pt3.xy.x;
+						pt.y += pt3.xy.y;
+
+						lds_draw_pt(gl_lds, $1, pt);
+					}
+					pt.x -= pt3.xy.x;
+					pt.y -= pt3.xy.y;
+				}
+			}
+
 			pt3s_free($4);
 		}
 	| dopt R pt pt {
@@ -208,38 +239,44 @@ instruction
 			/**************************************/
 		}
 	| WH pt_arrow_list ';' {
-
-			// @TODO VERIFIER S'IL Y A DEJA QQCH SUR LA CASE
-			//       ET QUE LES POINTS SONT DIFFERENTS
-
-			for (int i = 0; i < $2->nb - 1; ++i) {
+			for (int i = 0; i < $2->nb; ++i) {
 				Tpoint pt1 = $2->t[i];
 				Tpoint pt2 = $2->t[i + 1];
 
+				printf("pt1: %d:%d\n", pt1.x, pt2.y);
+				printf("pt2: %d:%d\n", pt1.x, pt2.y);
+
+				if (gl_lds->squares[pt1.x][pt1.y].opt == LDS_OptMD)
+					yyerror("(%d:%d): there is already a Magic Door", pt1.x, pt1.y);
+
+				if (pdt_wormhole_dest(gl_pdt, pt1))
+					yyerror("(%d:%d): there is already a Wormhole input", pt1.x, pt1.y);
+
 				if (gl_lds->squares[pt1.x, pt1.y]->kind == LDS_WALL) {
-					printf("warning: (%d, %d) was a WALL (deleted)\n", pt1.x, pt1.y);
+					printf("warning: (%d, %d) was a WALL (replaced by a Wormhole)\n", pt1.x, pt1.y);
 					gl_lds->squares[pt1.x, pt1.y]->kind = LDS_FREE;
 				}
-				if (gl_lds->squares[pt2.x, pt2.y]->kind == LDS_WALL) {
-					printf("warning: (%d, %d) was a WALL (deleted)\n", pt2.x, pt2.y);
-					gl_lds->squares[pt2.x, pt2.y]->kind = LDS_FREE;
-				}
 
-				pdt_wormhole_add(gl_pdt, pt1, pt2);
+				if (i < $2->nb - 1)
+					pdt_wormhole_add(gl_pdt, pt1, pt2);
 			}
 			
 			pts_free($2);
 		}
 	| MD pt dest_list ';' {
-			// @TODO VERIFIER S'IL Y A DEJA QQCH SUR LA CASE
-			//       ET QUE LES POINTS SONT DIFFERENTS
 			Tsqmd* sqmd = pdt_magicdoor_getcreate(gl_pdt, gl_lds, $2);
 
 			for (int i = 0; i < $3->nb; ++i) {
 				Tpoint3 pt_dir = $3->t[i];
 
+				if (gl_lds->squares[pt_dir.xy.x][pt_dir.xy.y].opt == LDS_OptMD)
+					yyerror("(%d:%d): there is already a Magic Door", pt_dir.xy.x, pt_dir.xy.y);
+
+				if (pdt_wormhole_dest(gl_pdt, pt_dir.xy))
+					yyerror("(%d:%d): there is already a Wormhole input", pt_dir.xy.x, pt_dir.xy.y);
+
 				if (gl_lds->squares[pt_dir.xy.x, pt_dir.xy.y]->kind == LDS_WALL) {
-					printf("warning: (%d, %d) was a WALL (deleted)\n", pt_dir.xy.x, pt_dir.xy.y);
+					printf("warning: (%d, %d) was a WALL (replaced by a Magic Door)\n", pt_dir.xy.x, pt_dir.xy.y);
 					gl_lds->squares[pt_dir.xy.x, pt_dir.xy.y]->kind = LDS_FREE;
 				}
 				
@@ -307,7 +344,12 @@ pt_arrow_list
 ;
 
 vect
-	: '(' xcst ',' xcst ')' { $$ = (Tpoint){$2, $4}; }
+	: '(' xcst ',' xcst ')' {
+			if (!$2 && !$4)
+				yyerror("(0:0) is the null vector");
+			else
+				$$ = (Tpoint){$2, $4};
+		}
 ;
 
 vectn
@@ -401,4 +443,4 @@ dest_list
 %%
 
 #include "labgen.yy.c"
-#include "top.c"
+#include "src/top.c"

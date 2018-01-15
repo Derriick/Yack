@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
-#include "auge/top.h"
-#include "auge/expr.h"
+#include "../auge/top.h"
+#include "../auge/expr.h"
 
 /*====== TEMPORAIRE ======*/
 #include <stdbool.h>

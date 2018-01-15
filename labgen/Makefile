@@ -2,7 +2,7 @@ APP	= labgen
 AUGE = auge/
 
 YSRC = top.c
-CSRC = expr.c
+CSRC = src/expr.c
 COBJ = $(CSRC:.c=.o)
 AUGE_SRC = $(wildcard $(AUGE)*.c)
 AUGE_OBJ = $(AUGE_SRC:.c=.o)
@@ -35,4 +35,4 @@ $(APP): $(APP).o $(COBJ) $(AUGE_OBJ)
 	$(CC) -o $@ $^
 
 clean:
-	rm -rf $(APP) $(APP).c *.yy.c *.o $(AUGE)*.o *.output 2>/dev/null
+	rm -rf $(APP) $(APP).c *.yy.c *.o $(AUGE)*.o *.output labres.y labres.l 2>/dev/null
