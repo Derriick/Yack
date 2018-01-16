@@ -134,6 +134,41 @@ int write_template(char* filename, FILE* output_stream)
 	return 0;
 }
 
+Twr get_wr(int i, int j)
+{
+	switch (i) {
+		case 0:
+			switch (j) {
+				case 0:
+					return LG_WrNW;
+				case 1:
+					return LG_WrNN;
+				case 2:
+					return LG_WrNE;
+			}
+		case 1:
+			switch (j) {
+				case 0:
+					return LG_WrWW;
+				case 1:
+					return LG_WrUU;
+				case 2:
+					return LG_WrEE;	
+			}
+		case 2:
+			switch (j) {
+				case 0:
+					return LG_WrSW;
+				case 1:
+					return LG_WrSS;
+				case 2:
+					return LG_WrSE;
+			}
+		default:
+			return LG_WrUU;
+	}
+}
+
 int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 {
 	char* lex_temp = strdup("src/lex_template");
@@ -153,8 +188,8 @@ int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 	Tsquare sq;
 	Tsquare sq2;
 	char* card[3][3] = {{"NW", "N", "NE"},
-					   { "W",  "",  "E" },
-					   {"SW", "S", "SE"}};
+						{ "W",  "",  "E" },
+						{"SW", "S", "SE"}};
 
 	for (int i = 0; i < ds->dx; ++i)
 		for (int j = 0; j < ds->dy; ++j) {
@@ -162,31 +197,60 @@ int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 
 			sq = ds->squares[i][j];
 
-			fprintf(ystream, "cell_%d_%d\n", i, j);
+			if (sq.kind == LDS_OUT) {
+				fprintf(ystream, "cell_%d_%d\n\t: { return 0; }\n;\n\n", i, j);
+			}
+			else if (sq.kind != LDS_WALL) {
+				fprintf(ystream, "cell_%d_%d\n", i, j);
 
-			if (sq.kind != LDS_OUT)
 				for (int i2 = 0; i2 <= 2; ++i2)
 					for (int j2 = 0; j2 <= 2; ++j2) {
 						int x = i + i2 - 1;
-						int y = j + j2 - 2;
+						int y = j + j2 - 1;
 
 						if ((i2 != 1 || j2 != 1) &&
-							x >= 0 && x < ds->dx
-							&& y >= 0 && y < ds->dy)
+							x >= 0 && x < ds->dx &&
+							y >= 0 && y < ds->dy)
 						{
 							sq2 = ds->squares[x][y];
 
 							if (sq2.kind != LDS_WALL) {
-								fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[i2][j2], x, y);
+								if (sq2.opt == LDS_OptWH) {
+									// const Tpoint* dest = pdt_wormhole_dest(gl_pdt, (Tpoint){x, y});
+									// if (!dest)
+									// 	assert(false);
+									// x = dest->x;
+									// y = dest->y;
+
+									Tpoint dest = sq2.sq_whd;
+
+									fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[i2][j2], dest.x, dest.y);
+								}
+								else if (sq2.opt == LDS_OptMD) {
+									Tsqmd* sqmd = sq2.sq_mdp;
+									Twr wr = get_wr(i2, i2);
+									Tpoint dest = sqmd->t[wr].dest;
+
+									fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[i2][j2], dest.x, dest.y);
+								}
+								else if ((i2+j2)%2 == 0) {
+									if (ds->squares[x][j].kind != LDS_WALL ||
+										ds->squares[i][y].kind != LDS_WALL)
+									{
+										fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[i2][j2], x, y);
+									}
+								}
+								else
+									fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[i2][j2], x, y);
+								
 								sep = '|';
 							}
 						}
-
 					}
-			else
-				fprintf(ystream, "\t: { return 0; }\n");
 
-			fprintf(ystream, ";\n\n");
+				fprintf(ystream, ";\n\n");
+			}
+
 		}
 
 	if (write_template(yacc_temp2, ystream))

@@ -3,3 +3,4 @@ IN (0,0);
 WALL ;
 TOGGLE R (0,0) (2,2);
 OUT (2,2) ;
+SHOW

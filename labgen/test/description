@@ -13,3 +13,4 @@ WH (0,1) --> (0,3)
  ; # W1 w1
 # la porte magique (A et ai)
 MD (3,2) W (0,0) E (max,2) ;
+SHOW

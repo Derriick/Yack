@@ -14,6 +14,24 @@
 	#define MAX(a, b) ((a)>(b) ? (a) : (b))
 
 	int	yylex();
+
+	void check_draw_square_xy(Tlds* lds, TdrawOpt dopt, int x, int y)
+	{
+		TsquareKind kind = lds->squares[x][y].kind;
+		TsquareOpt opt = lds->squares[x][y].opt;
+
+		if (kind == LDS_IN || kind == LDS_OUT)
+			printf("warning: (%d, %d) is an input or an output -> can't be a Wall\n", x, y);
+		else if (opt != LDS_OptNone)
+			printf("warning: (%d, %d) is a Wormhole or a Magic Door -> can't be a Wall\n", x, y);
+		else
+			lds_draw_xy(lds, dopt, x, y);
+	}
+
+	void check_draw_square_pt(Tlds* lds, TdrawOpt dopt, Tpoint pt)
+	{
+		check_draw_square_xy(lds, dopt, pt.x, pt.y);
+	}
 %}
 
 
@@ -172,39 +190,38 @@ instruction
 		Tpoint size = (Tpoint){gl_lds->dx, gl_lds->dy};
 		for (int i = 0; i < size.x; ++i)
 			for (int j = 0; j < size.y; ++j)
-				lds_draw_xy(gl_lds, $1, i, j);
+				check_draw_square_xy(gl_lds, $1, i, j);
 	}
 	| dopt PTA pt_list ';' {
 			lds_draw_pts(gl_lds, $1, $3);
 			pts_free($3);
 		}
 	| dopt PTD pt ';' {
-			lds_draw_pt(gl_lds, $1, $3);
+			check_draw_square_pt(gl_lds, $1, $3);
 		}
 	| dopt PTD pt vectn_list ';' {
-			Tpoint pt = $3;
-			lds_draw_pt(gl_lds, $1, pt);
+			check_draw_square_pt(gl_lds, $1, $3);
 
 			for (int i = 0; i < $4->nb; ++i) {
 				Tpoint3 pt3 = $4->t[i];
 
 				if (pt3.z)
 					for (int j = 0; j < pt3.z; ++j) {
-						pt.x += pt3.xy.x;
-						pt.y += pt3.xy.y;
+						$3.x += pt3.xy.x;
+						$3.y += pt3.xy.y;
 
-						if (!lds_check_pt(gl_lds, pt))
-							lds_draw_pt(gl_lds, $1, pt);
+						if (!lds_check_pt(gl_lds, $3))
+							check_draw_square_pt(gl_lds, $1, $3);
 					}
 				else {
-					while (lds_check_pt(gl_lds, pt)) {
-						pt.x += pt3.xy.x;
-						pt.y += pt3.xy.y;
+					while (!lds_check_pt(gl_lds, $3)) {
+						check_draw_square_pt(gl_lds, $1, $3);
 
-						lds_draw_pt(gl_lds, $1, pt);
+						$3.x += pt3.xy.x;
+						$3.y += pt3.xy.y;
 					}
-					pt.x -= pt3.xy.x;
-					pt.y -= pt3.xy.y;
+					$3.x -= pt3.xy.x;
+					$3.y -= pt3.xy.y;
 				}
 			}
 
@@ -215,13 +232,13 @@ instruction
 			Tpoint rectMax = (Tpoint){MAX($3.x, $4.x), MAX($3.y, $4.y)};
 
 			for (int i = rectMin.x; i <= rectMax.x; ++i) {
-				lds_draw_xy(gl_lds, $1, i, rectMin.y);
-				lds_draw_xy(gl_lds, $1, i, rectMax.y);
+				check_draw_square_xy(gl_lds, $1, i, rectMin.y);
+				check_draw_square_xy(gl_lds, $1, i, rectMax.y);
 			}
 
 			for (int i = rectMin.y + 1 ; i < rectMax.y; ++i) {
-				lds_draw_xy(gl_lds, $1, rectMin.x, i);
-				lds_draw_xy(gl_lds, $1, rectMax.x, i);
+				check_draw_square_xy(gl_lds, $1, rectMin.x, i);
+				check_draw_square_xy(gl_lds, $1, rectMax.x, i);
 			}
 		}
 	| dopt R F pt pt ';' {
@@ -230,7 +247,7 @@ instruction
 
 			for (int i = rectMin.x; i < rectMax.x; ++i)
 				for (int j = rectMin.y; j < rectMax.y; ++j)
-					lds_draw_xy(gl_lds, $1, i, j);
+					check_draw_square_xy(gl_lds, $1, i, j);
 		}
 	| dopt FOR vars_in_ranges '(' expr ',' expr ')' ';' {
 
@@ -243,19 +260,18 @@ instruction
 				Tpoint pt1 = $2->t[i];
 				Tpoint pt2 = $2->t[i + 1];
 
-				printf("pt1: %d:%d\n", pt1.x, pt2.y);
-				printf("pt2: %d:%d\n", pt1.x, pt2.y);
-
 				if (gl_lds->squares[pt1.x][pt1.y].opt == LDS_OptMD)
 					yyerror("(%d:%d): there is already a Magic Door", pt1.x, pt1.y);
 
 				if (pdt_wormhole_dest(gl_pdt, pt1))
 					yyerror("(%d:%d): there is already a Wormhole input", pt1.x, pt1.y);
 
-				if (gl_lds->squares[pt1.x, pt1.y]->kind == LDS_WALL) {
-					printf("warning: (%d, %d) was a WALL (replaced by a Wormhole)\n", pt1.x, pt1.y);
-					gl_lds->squares[pt1.x, pt1.y]->kind = LDS_FREE;
+				if (gl_lds->squares[pt1.x][pt1.y].kind == LDS_WALL) {
+					printf("warning: (%d:%d) was a WALL (replaced by a Wormhole)\n", pt1.x, pt1.y);
+					gl_lds->squares[pt1.x][pt1.y].kind = LDS_FREE;
 				}
+				else if (gl_lds->squares[pt1.x][pt1.y].kind != LDS_FREE)
+					yyerror("(%d:%d): a Wormhole can't come from or go to a labyrinth input or output", pt1.x, pt1.y);
 
 				if (i < $2->nb - 1)
 					pdt_wormhole_add(gl_pdt, pt1, pt2);
@@ -266,6 +282,11 @@ instruction
 	| MD pt dest_list ';' {
 			Tsqmd* sqmd = pdt_magicdoor_getcreate(gl_pdt, gl_lds, $2);
 
+			if (gl_lds->squares[$2.x][$2.y].kind == LDS_WALL) {
+				printf("warning: (%d:%d) was a WALL (replaced by a Magic Door)\n", $2.x, $2.y);
+				gl_lds->squares[$2.x][$2.y].kind = LDS_FREE;
+			}
+
 			for (int i = 0; i < $3->nb; ++i) {
 				Tpoint3 pt_dir = $3->t[i];
 
@@ -275,9 +296,9 @@ instruction
 				if (pdt_wormhole_dest(gl_pdt, pt_dir.xy))
 					yyerror("(%d:%d): there is already a Wormhole input", pt_dir.xy.x, pt_dir.xy.y);
 
-				if (gl_lds->squares[pt_dir.xy.x, pt_dir.xy.y]->kind == LDS_WALL) {
-					printf("warning: (%d, %d) was a WALL (replaced by a Magic Door)\n", pt_dir.xy.x, pt_dir.xy.y);
-					gl_lds->squares[pt_dir.xy.x, pt_dir.xy.y]->kind = LDS_FREE;
+				if (gl_lds->squares[pt_dir.xy.x][pt_dir.xy.y].kind == LDS_WALL) {
+					printf("warning: (%d:%d) was a WALL (replaced by a Magic Door)\n", pt_dir.xy.x, pt_dir.xy.y);
+					gl_lds->squares[pt_dir.xy.x][pt_dir.xy.y].kind = LDS_FREE;
 				}
 				
 				lds_sqmd_update(sqmd, (Twr)pt_dir.z, pt_dir.xy);

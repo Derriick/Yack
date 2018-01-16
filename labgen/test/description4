@@ -1,0 +1,8 @@
+max = 2;
+SIZE max;
+IN (0,0);
+OUT (max,max) ;
+WALL PTD (0,2) (1,-1):*;
+WALL PTA (1, 0); # doit être remplacé par la porte magique
+MD (1,0) E (max,(max+1)/2) NE ((max+1)/2,max) ;
+SHOW

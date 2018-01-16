@@ -2,8 +2,8 @@
 	#include <stdio.h>
 	#include <stdlib.h>
 
-	void	yyerror(const char *mess);
-	int	yylex();
+	void yyerror(const char *mess);
+	int yylex();
 %}
 
 %token N E S W
