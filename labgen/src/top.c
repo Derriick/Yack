@@ -187,6 +187,7 @@ int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 
 	Tsquare sq;
 	Tsquare sq2;
+	Tsquare sq3;
 	char* card[3][3] = {{"NW", "N", "NE"},
 						{ "W",  "",  "E" },
 						{"SW", "S", "SE"}};
@@ -207,14 +208,21 @@ int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 					for (int j2 = 0; j2 <= 2; ++j2) {
 						int x = i + i2 - 1;
 						int y = j + j2 - 1;
-
-						if ((i2 != 1 || j2 != 1) &&
-							x >= 0 && x < ds->dx &&
-							y >= 0 && y < ds->dy)
+						if (sq.opt == LDS_OptMD) {
+							Tsqmd* sqmd = sq.sq_mdp;
+							Twr wr = get_wr(j2, i2);
+							Tpoint dest = sqmd->t[wr].dest;
+							if(!lds_check_xy (ds, dest.x, dest.y)){
+								sq3 = ds->squares[dest.x][dest.y];
+								if(sq3.kind != LDS_WALL){
+									fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[j2][i2], dest.x, dest.y);
+								}
+							}
+						}
+						if ((i2 != 1 || j2 != 1) &&	x >= 0 && x < ds->dx &&	y >= 0 && y < ds->dy)
 						{
 							sq2 = ds->squares[x][y];
-
-							if (sq2.kind != LDS_WALL) {
+							if (sq2.kind != LDS_WALL  && sq.opt != LDS_OptMD) {								
 								if (sq2.opt == LDS_OptWH) {
 									// const Tpoint* dest = pdt_wormhole_dest(gl_pdt, (Tpoint){x, y});
 									// if (!dest)
@@ -224,27 +232,20 @@ int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 
 									Tpoint dest = sq2.sq_whd;
 
-									fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[i2][j2], dest.x, dest.y);
-								}
-								else if (sq2.opt == LDS_OptMD) {
-									Tsqmd* sqmd = sq2.sq_mdp;
-									Twr wr = get_wr(i2, i2);
-									Tpoint dest = sqmd->t[wr].dest;
-
-									fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[i2][j2], dest.x, dest.y);
+									fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[j2][i2], dest.x, dest.y);
 								}
 								else if ((i2+j2)%2 == 0) {
 									if (ds->squares[x][j].kind != LDS_WALL ||
 										ds->squares[i][y].kind != LDS_WALL)
 									{
-										fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[i2][j2], x, y);
+										fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[j2][i2], x, y);
 									}
 								}
 								else
-									fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[i2][j2], x, y);
+									fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[j2][i2], x, y);
 								
 								sep = '|';
-							}
+							}							
 						}
 					}
 
