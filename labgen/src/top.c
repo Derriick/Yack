@@ -197,7 +197,7 @@ int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 			sq = ds->squares[i][j];
 
 			if (sq.kind == LDS_OUT) {
-				fprintf(ystream, "cell_%d_%d\n\t%c { return 0; }\n;\n\n", i, j, sep);
+				fprintf(ystream, "cell_%d_%d\n\t: { return 0; }\n\t| any { return 0; }\n;\n\n", i, j, sep);
 			}
 			else if (sq.kind != LDS_WALL) {
 				fprintf(ystream, "cell_%d_%d\n", i, j);
