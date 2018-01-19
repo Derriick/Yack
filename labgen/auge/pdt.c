@@ -18,10 +18,8 @@ extern Tpdt * pdt_new ()
 {
     Tpdt* pdt = u_malloc0( sizeof(*pdt) );
     pdt->vars = vars_new();
-    pdt->frgs = pt3s_new();
     pdt->out  = pts_new();
     pdt->md   = pts_new();
-    pdt->wh   = pts_new();
     return pdt;
 }
 
@@ -59,31 +57,21 @@ extern int  pdt_var_get(Tpdt* pdt, Cstr vn, int*v)
 
 // if the the worm hole src --> dest exists the function return dest.
 // Otherwise it returns the NULL pointer.
-Tpoint* pdt_wormhole_dest(const Tpdt*pdt, Tpoint src) {
+const Tpoint* pdt_wormhole_dest(const Tpdt*pdt, Tpoint src)
+{
     int i;
-    Tpoint *curr;
-
-    for(i=0 ; i<pdt->wh->nb ; i+=1) {
-        curr = &pdt->wh->t[i];
-        if(pt_cmp(curr, &src) == 0)
-            return curr;
+    for(i=0 ; i<pdt->whnb ; i+=1) {
+        if ( pt_cmp(&pdt->whin[i],&src)==0 )
+            return &pdt->whout[i];
     }
-
     return NULL;
 }
 
-void pdt_wormhole_add(Tpdt*pdt, Tlds*ds, Tpoint src, Tpoint dest)
+void    pdt_wormhole_add(Tpdt*pdt, Tpoint src, Tpoint dest)
 {
-    Tpoint *p;
-
-    if(!(p = pdt_wormhole_dest(pdt, src))) {
-        ds->squares[src.x][src.y].opt    = LDS_OptWH;
-        pts_app_pt( pdt->wh, src);
-        p = &src;
-    }
-
-    /* We finally update the destination */
-    ds->squares[p->x][p->y].sq_whd = dest;
+    pdt->whin [pdt->whnb] = src;
+    pdt->whout[pdt->whnb] = dest;
+    pdt->whnb            += 1;
 }
 
 // Returns the md parameters of the pt square.

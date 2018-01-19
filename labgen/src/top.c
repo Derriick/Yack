@@ -74,14 +74,12 @@ int lg_sem(Tlds* ds, const Tpdt* pdt)
 
 			switch (square->opt) {
 				case LDS_OptWH:
-					if (square->sq_mdp != NULL) {
-						fprintf(stderr, "(%d:%d): A Wormhole input can't be a Magic Door (RS-9)\n", i, j);
-					}
+					if (square->kind != LDS_FREE)
+						fprintf(stderr, "(%d:%d): A Wormhole input can't be the input, an output or a Wall (RS-9)\n", i, j);
 					break;
 				case LDS_OptMD:
-					// if (square->sq_whd != NULL) {
-					// 	fprintf(stderr, "(%d:%d): A Magic Door can't be a Wormhole input (RS-9)\n", i, j);
-					// }
+					if (square->kind != LDS_FREE)
+						fprintf(stderr, "(%d:%d): A Magic Door input can't be the input, an output or a Wall (RS-9)\n", i, j);
 					break;
 				default:
 					break;

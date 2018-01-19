@@ -19,14 +19,14 @@
 /*= Parser DaTa                                                        =*/
 
 struct _Tpdt {
-    Tvars *vars;
+    Tvars*   vars;
     Tpoints* in;
     Tpoints* out;
-    Tpoint3s *frgs;
     // worm holes
     int whnb;
-    Tpoints* wh; // points that have a worm hole
-    // magic doors
+    Tpoint whin [PDT_WHSIZE]; // worm hole inputs
+    Tpoint whout[PDT_WHSIZE]; // worm hole outputs
+    // magic holes
     Tpoints*md; // points that have a magic door.
                 // associated data are stored in the lds structure
 };
@@ -52,8 +52,8 @@ extern int  pdt_var_get(Tpdt* pdt, Cstr vn, int*v);
 
 // if the the worm hole src --> dest exists the function return dest.
 // Otherwise it returns the NULL pointer.
-Tpoint* pdt_wormhole_dest(const Tpdt*pdt, Tpoint src);
-void    pdt_wormhole_add(Tpdt*pdt, Tlds*ds, Tpoint src, Tpoint dest);
+const Tpoint* pdt_wormhole_dest(const Tpdt*pdt, Tpoint src);
+void    pdt_wormhole_add(Tpdt*pdt, Tpoint src, Tpoint dest);
 
 // Returns the md parameters of the pt square.
 // If it not yet exists it is created and attached to the pt square.

@@ -257,8 +257,8 @@ instruction
 		}
 	| WH pt_arrow_list ';' {
 			for (int i = 0; i < $2->nb; ++i) {
-				Tpoint pt1 = $2->t[i];
-				Tpoint pt2 = $2->t[i + 1];
+				Tpoint pt1 = $2->t[i + 1];
+				Tpoint pt2 = $2->t[i];
 
 				if (gl_lds->squares[pt1.x][pt1.y].opt == LDS_OptMD)
 					yyerror("(%d:%d): there is already a Magic Door", pt1.x, pt1.y);
@@ -273,8 +273,11 @@ instruction
 				else if (gl_lds->squares[pt1.x][pt1.y].kind != LDS_FREE)
 					yyerror("(%d:%d): a Wormhole can't come from or go to a labyrinth input or output", pt1.x, pt1.y);
 
-				if (i < $2->nb - 1)
-					pdt_wormhole_add(gl_pdt, gl_lds, pt1, pt2);
+				if (i < $2->nb - 1) {
+					pdt_wormhole_add(gl_pdt, pt1, pt2);
+					gl_lds->squares[pt1.x][pt1.y].opt = LDS_OptWH;
+					gl_lds->squares[pt1.x][pt1.y].sq_whd = pt2;
+				}
 			}
 			
 			pts_free($2);
