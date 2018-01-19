@@ -213,7 +213,7 @@ int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 							Tpoint dest = sqmd->t[wr].dest;
 							if(!lds_check_xy (ds, dest.x, dest.y)){
 								sq3 = ds->squares[dest.x][dest.y];
-								if(sq3.kind != LDS_WALL){
+								if(sq3.kind != LDS_WALL && (dest.x != x || dest.y != y)){
 									fprintf(ystream, "\t%c %s cell_%d_%d\n", sep, card[j2][i2], dest.x, dest.y);
 								}
 							}
@@ -221,7 +221,7 @@ int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 						if ((i2 != 1 || j2 != 1) &&	x >= 0 && x < ds->dx &&	y >= 0 && y < ds->dy)
 						{
 							sq2 = ds->squares[x][y];
-							if (sq2.kind != LDS_WALL  && sq.opt != LDS_OptMD) {								
+							if (sq2.kind != LDS_WALL) {								
 								if (sq2.opt == LDS_OptWH) {
 									// const Tpoint* dest = pdt_wormhole_dest(gl_pdt, (Tpoint){x, y});
 									// if (!dest)
