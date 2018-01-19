@@ -7,7 +7,7 @@ COBJ = $(CSRC:.c=.o)
 AUGE_SRC = $(wildcard $(AUGE)*.c)
 AUGE_OBJ = $(AUGE_SRC:.c=.o)
 
-CC		= gcc
+CC		= gcc -std=c99
 CFLAGS	= -Wall -Wextra
 YACC	= bison
 YFLAGS	= -v
