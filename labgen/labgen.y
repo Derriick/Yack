@@ -274,7 +274,7 @@ instruction
 					yyerror("(%d:%d): a Wormhole can't come from or go to a labyrinth input or output", pt1.x, pt1.y);
 
 				if (i < $2->nb - 1)
-					pdt_wormhole_add(gl_pdt, pt1, pt2);
+					pdt_wormhole_add(gl_pdt, gl_lds, pt1, pt2);
 			}
 			
 			pts_free($2);

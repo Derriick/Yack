@@ -202,7 +202,7 @@ int lg_gen(Tlds* ds, FILE* lstream, FILE* ystream, Cstr lcfname)
 				fprintf(ystream, "cell_%d_%d\n\t: { return 0; }\n;\n\n", i, j);
 			}
 			else if (sq.kind != LDS_WALL) {
-				fprintf(ystream, "cell_%d_%d\n\t:\n", i, j);
+				fprintf(ystream, "cell_%d_%d:\n", i, j);
 				for (int i2 = 0; i2 <= 2; ++i2)
 					for (int j2 = 0; j2 <= 2; ++j2) {
 						int x = i + i2 - 1;
